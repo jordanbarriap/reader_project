@@ -12,7 +12,9 @@ from django.db import connection
 # Create your views here.
 import datetime
 
-def load_course(request,course_id):
+def load_course(request,group_id):
+    course_id = Group.objects.values("course__id").filter(id=group_id)
+    print(course_id)
     if request.user.is_authenticated():
         user_id = request.user.id
         try:
@@ -28,7 +30,7 @@ def load_course(request,course_id):
         hierarchical_structure = course_json.course_structure
         linear_structure = []
         enrich_course_structure(linear_structure,hierarchical_structure,user_id,course_id)
-        return render(request, "reader.html", {"course":{"id":course_json.id,"name":course_json.name}, "course_hierarchical":hierarchical_structure,"course_linear":linear_structure,"last_page_read":last_page_read})
+        return render(request, "reader.html", {"group":group_id, "course":{"id":course_json.id, "name":course_json.name}, "course_hierarchical":hierarchical_structure,"course_linear":linear_structure,"last_page_read":last_page_read})
 
 def enrich_course_structure(array,data,user_id,course_id):
     if "children" in data:

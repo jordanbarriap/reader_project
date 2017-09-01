@@ -158,4 +158,4 @@ REST_FRAMEWORK = {
     ]
 }
 
-LOGIN_REDIRECT_URL = 'http://localhost:8000/reader/2'
+LOGIN_REDIRECT_URL = 'http://localhost:8000/reader/IRtest'
