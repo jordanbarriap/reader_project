@@ -36,7 +36,7 @@ class ReadingLog(models.Model):
     datetime = models.DateTimeField(default=timezone.now())
     session = models.CharField(max_length=100, default="test")
     user = models.ForeignKey(User)
-    course = models.ForeignKey("Course", default=1)
+    group = models.ForeignKey(Group, default=1)
     section = models.CharField(max_length=100, default="test")
     resource = models.CharField(max_length=100, default="book")
     page = models.IntegerField(default=0)

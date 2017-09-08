@@ -208,10 +208,10 @@ function loadResource(section_id,section_name,resource_id,page_num){
             search:  '/search'
           }
         });*/
-         console.log("{{ request.META.HTTP_HOST }}");
+         console.log("{{ request.META.HTTP_HOST }} {{group}}");
          $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
              {"user": {{ request.user.id }},
-             "course": {{ course.id }},
+             "group": "{{ group }}",
              "section": section_id,
              "name": section_name,
              "resource": resource_id,
@@ -222,28 +222,29 @@ function loadResource(section_id,section_name,resource_id,page_num){
          //If user scrolls the page
         $("#page-container").scrollEnd(function(){
             //Log scroll event by using the reader api
+
+            //Get all the text html containers
+            var visible_text_elements = [];
+            var visible_text = "";
+            $("#page-container").find(".t").each(function(){
+                if(isElementInViewport($(this))){
+                    visible_text_elements.push($(this).attr("class"));
+                    visible_text = visible_text + " " + $(this).text();
+                }
+            });
+
             $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
              {"user": {{ request.user.id }},
-             "course": {{ course.id }},
+             "group": "{{ group }}",
              "section": section_id,
              "name": section_name,
              "resource": resource_id,
              "page": page_num,
              "action":"page-scroll",
-             "datetime": new Date().toISOString()}) );
+             "datetime": new Date().toISOString(),
+             "visible_text": visible_text_elements}) );
 
-            //Get all the text html containers
-            var visible_text_elements = 0;
-            var visible_text = "";
-            $("#page-container").find(".t").each(function(){
-                if(isElementInViewport($(this))){
-                    visible_text_elements++;
-                    visible_text = visible_text + " " + $(this).text();
-                    console.log($(this).attr("class").split(" "));
-                }
-            });
             console.log(visible_text)
-            console.log(visible_text_elements);
         }, 500);
     });
 }
@@ -251,9 +252,10 @@ function loadResource(section_id,section_name,resource_id,page_num){
 function initProgressVis(course_structure){
     var root = course_structure;
 
-    var w = $("#vis-div").width();
-        //h = "100%";
-    var h = window.innerHeight;
+    var w = $("#vis-div").width()/2;
+    var h = $("#vis-div").height();
+
+    var svg_size = w-2;
 
     var partition = d3.layout.partition()
         .sort(null)
@@ -262,40 +264,91 @@ function initProgressVis(course_structure){
         })
         .value(function(d) {return Math.log(d.epage-d.spage+1); });
 
+    var color = d3.scale.linear()
+        .domain([0.0, 1.0])
+        .range(["#ECEEF5", "#011568"]);
+
     var x = d3.scale.linear()
-        .range([0, w-40]);
+        .range([0, w]);
         //.range([0, h]);
     var y = d3.scale.linear()
             .range([0, h]);
             //range([0, w]);
 
+    var x_comp = d3.scale.linear()
+        .range([w, 0]);
+
     var separation = 0.5;
       var y_separation = 0;
-
-    $("#left-div").css("margin-left","-"+x(0.2)+"px");
 
     var fisheye = d3.fisheye.circular()
     .radius(100)
     .distortion(2);
 
+    var svg_comp = d3.select("#vis-div").append("svg")
+        .attr("id","svg-vis-comp")
+        .attr("width", svg_size )
+        .attr("height", h)
+            .append("g")
+            .attr("id","g_progress_vis_comp");
+
+    var rect_comp = svg_comp.selectAll("rect");
+
+    rect_comp = rect_comp
+          .data(partition(root))
+        .enter().append("g")
+            .attr("class", function (d) {
+                    classname = "partition_depth_" + d.depth;
+
+                    //if (d.depth > 0){
+                        classname += " partition_docno_" + d.docno;
+                    //}
+
+                    return classname;
+                })
+            .append("rect")
+          .attr("x", function(d) {
+                return x_comp(d.y)-d.depth*separation;
+                //return d.depth*(separation+widthLayer);
+            })
+          .attr("y", function(d) { return y(d.x)+y_separation; })
+          .attr("width", function(d) { return x(d.dy); })
+          .attr("height", function(d) { return y(d.dx); })
+          .attr("fill", function (d) {
+                    var visited_pages = d.num_visited_pages;
+                    var total_section_pages = d.epage - d.spage;
+                    var proportion_visited_pages = visited_pages/total_section_pages;
+                    /*for (count = 0; count < diagram.length; count++) {
+                        if (diagram[count].docNum == d.docno) {
+                            return d3.rgb(diagram[count].diagramColor)
+                        }
+                    }*/
+                    return color(proportion_visited_pages);
+                })
+          .attr("class", function (d) {
+                    classname = "partition_depth_" + d.depth;
+
+                    //if (d.depth > 0){
+                        classname += " partition_docno_" + d.docno;
+                    //}
+
+                    return classname;
+                })
+          .attr("display", function(d) { return d.depth && d.depth<=4 ? null : "none"; })//d.depth && d.depth<=3 ? null : "none"; })
+          .attr("stroke-width","1px")
+          .attr("stroke","white")
+          .attr("opacity",1)
+          .on("mouseover",visSectionMouseover);
+          /*.on("click", visSectionClick)
+          .on("dblclick", partitionTableDoubleClick)
+          .on("mouseout",partitionTableMouseout);*/
+
     var svg = d3.select("#vis-div").append("svg")
         .attr("id","svg-vis")
-        .attr("width", $("#vis-div").width())
+        .attr("width", svg_size)
         .attr("height", h)
-        //.style("margin-left","-35px")
             .append("g")
             .attr("id","g_progress_vis");
-        //.attr("translate(100 0)");
-        //.style("background","#898989");
-        //.style("margin-top","-15px");
-        //.style("margin-bottom","-15px");
-    //var rect_comp = svg_comp.selectAll("rect");
-
-
-
-    var color = d3.scale.linear()
-        .domain([0.0, 1.0])
-        .range(["#DEDEDE", "#14146E"]);
 
     var rect = svg.selectAll("rect");
 
@@ -312,11 +365,6 @@ function initProgressVis(course_structure){
                     return classname;
                 })
             .append("rect")
-          /*.attr("x", function(d) { return x(d.x); })
-          .attr("y", function(d) { return y(d.y); })
-          .attr("width", function(d) { return x(d.dx); })
-          .attr("height", function(d) { return y(d.dy); })
-          */
           .attr("x", function(d) {
                 return x(d.y)+d.depth*separation;
                 //return d.depth*(separation+widthLayer);
@@ -347,66 +395,20 @@ function initProgressVis(course_structure){
           .attr("display", function(d) { return d.depth && d.depth<=4 ? null : "none"; })//d.depth && d.depth<=3 ? null : "none"; })
           .attr("stroke-width","1px")
           .attr("stroke","white")
-          .attr("opacity",0.4)
-          .on("click", visSectionClick);
-          /*.on("dblclick", partitionTableDoubleClick)
-          .on("mouseover",partitionTableMouseover)
-          .on("mouseout",partitionTableMouseout);*/
-
-        /*rect_comp = rect_comp
-          .data(partition(root))
-        .enter().append("g")
-            .attr("class", function (d) {
-                    classname = "partition_depth_" + d.depth;
-
-                    //if (d.depth > 0){
-                        classname += " partition_docno_" + d.docno;
-                    //}
-
-                    return classname;
-                })
-            .append("rect")
-          .attr("x", function(d) {
-                return x_comp(d.y)-d.depth*separation;
-                //return d.depth*(separation+widthLayer);
-            })
-          .attr("y", function(d) { return y(d.x)+y_separation; })
-          .attr("width", function(d) { return x(d.dy); })
-          .attr("height", function(d) { return y(d.dx); })
-          .attr("fill", function (d) {
-                    var count = 0;
-                    for (count = 0; count < diagram.length; count++) {
-                        if (diagram[count].docNum == d.docno) {
-                            //console.log(count);
-                            var ran_count=Math.round(Math.random()*9);
-                            return d3.rgb(diagram[ran_count].diagramColor)
-                        }
-                    }
-                    return d3.rgb("#fff");
-                })
-          .attr("class", function (d) {
-                    classname = "partition_depth_" + d.depth;
-
-                    //if (d.depth > 0){
-                        classname += " partition_docno_" + d.docno;
-                    //}
-
-                    return classname;
-                })
-          .attr("display", function(d) { return d.depth && d.depth<=4 ? null : "none"; })//d.depth && d.depth<=3 ? null : "none"; })
-          .attr("stroke-width","1px")
-          .attr("stroke","white")
-          .attr("opacity",0.4)
+          .attr("opacity",1)
           .on("click", visSectionClick)
+          .on("mouseover",visSectionMouseover);
           /*.on("dblclick", partitionTableDoubleClick)
           .on("mouseover",partitionTableMouseover)
           .on("mouseout",partitionTableMouseout);*/
 
-        svg.on("mousemove", function() {
+
+
+        /*svg.on("mousemove", function() {
             fisheye.focus(d3.mouse(this));
             rect.each(function(d) { d.fisheye = fisheye(d); })
                 .attr("x",function(d){return d.fisheye.y;});
-        });
+        });*/
 
         /*var subsections = svg.selectAll("g.partition_depth_2");
 
@@ -772,6 +774,61 @@ function initToc(course_structure){
                 loadResource(last_page_read["section"],"test",last_page_read["resource"],last_page_read["page"]);
             }
         }
+    }
+
+    function visSectionMouseover(d, i) {
+        d3.select(this).style("opacity", 1.0);
+
+        d3.select(this).style("stroke","#000");
+        //d3.select(this).style("stroke-width", "1");
+
+
+        // Fade all the segments.
+        d3.selectAll("path").style("opacity", 0.3);
+
+        // Then highlight only those that are an ancestor of the current segment.
+        var sequenceArray = getAncestors(d);
+        console.log("ancestors");
+        console.log(sequenceArray);
+
+        d3.selectAll("rect")
+            .filter(function(node) {
+                return (sequenceArray.indexOf(node) >= 0);
+            })
+            .style("opacity", 1);
+
+
+
+        /*if(d.type == "lecture"){
+            //$("#tip").html(d.name + ":<br/>" + d.title); // @@@@
+            $("#tip").html(d.title);
+        }else{
+            var bookName = getBookName(d.bookid);
+            $("#tip").html("[Book] <b>" + bookName + "</b>: " + d.name);
+        }*/
+        $("#tip").css("color","#777777");
+
+        /* BEGIN iframe selection */
+        // @@@@ this was intended to show selection in the small multiples frame, but it is broken, and commented
+        // @@@@ in order to prevent a javascript error
+        if (d.type == "lecture") {
+            //parent.frames['iframe-sm'].selectFunction('arc' + (d.name.replace(/ /g, "-")), 0.1);
+        } else {
+            //parent.frames['iframe-sm'].selectFunction('arc' + (searchParent(d).replace(/ /g, "-")), 0.1);
+        }
+        /* END iframe selection */
+        //$("#tip").html("[Book] <b>" + bookName + "</b>: " + d.name);
+        return false;
+    }
+
+    function getAncestors(node) {
+      var path = [];
+      var current = node;
+      while (current.parent) {
+        path.unshift(current);
+        current = current.parent;
+      }
+      return path;
     }
 
 </script>

@@ -47,14 +47,14 @@
 
 #vis-div{
     float:left;
-    width:30%;
+    width:40%;
     height: 100%;
     position: relative;
 }
 
 #toc-div{
     float:right;
-    width:70%;
+    width:60%;
     height: 100%;
     overflow-y: auto;
     position: relative;
@@ -111,4 +111,16 @@ path.link {
 
 .toc_section{
     cursor:pointer !important;
+}
+
+#svg-vis-comp{
+    position:relative;
+    display: inline-block;
+    height:100%;
+}
+
+#svg-vis{
+    position: relative;
+    display: inline-block;
+    height:100%;
 }
