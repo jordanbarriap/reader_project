@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'annotator',
     'reader',
+    'quiz',
     'api'
 ]
 
@@ -158,4 +159,4 @@ REST_FRAMEWORK = {
     ]
 }
 
-LOGIN_REDIRECT_URL = 'http://localhost:8000/reader/IRtest'
+LOGIN_REDIRECT_URL = 'http://localhost:8000/reader/IRTest'

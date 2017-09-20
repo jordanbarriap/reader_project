@@ -15,7 +15,7 @@
 
 #reader-div{
     float:left;
-    width: 75% !important;
+    width: 70% !important;
     height:100% !important;
     /*overflow: auto;*/
     /*position: relative;*/
@@ -40,21 +40,21 @@
 
 #left-div{
     float:left;
-    width:25% !important;
+    width:30% !important;
     height: 100%;
     position: relative;
 }
 
 #vis-div{
     float:left;
-    width:40%;
+    width:35%;
     height: 100%;
     position: relative;
 }
 
 #toc-div{
     float:right;
-    width:60%;
+    width:65%;
     height: 100%;
     overflow-y: auto;
     position: relative;
@@ -90,8 +90,12 @@
   stroke-width: 1.5px;*/
 }
 
+.toc-section text{
+    padding-bottom: 5px;
+}
+
 .active rect{
-    fill: blue !important;
+    fill: #ffdb99 !important;
 }
 
 .node text {
@@ -109,7 +113,7 @@ path.link {
     margin: 0px !important;
 }
 
-.toc_section{
+.toc-section{
     cursor:pointer !important;
 }
 

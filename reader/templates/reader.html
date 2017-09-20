@@ -26,6 +26,8 @@
     <script type="text/javascript" src="{% static "js/cloud.js" %}"></script>
     <script type="text/javascript" src="{% static "js/fisheye.js" %}"></script>
 
+    <!--<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">-->
+
 </head>
 <body>
 <div id="left-div">
@@ -49,6 +51,27 @@
     <div id="recommendations-div"></div>
     <div id="concepts-div"></div>
 </div>-->
+
+<div id="quiz-div" class="w3-modal">
+    <div class="w3-modal-content">
+      <div class="w3-container">
+        <!--<span onclick="document.getElementById('id01').style.display='none'" class="w3-button w3-display-topright">&times;</span>
+        <p>You will be presented with 5 questions</p>
+          <p>How many of them you would think you will answer correctly?</p><br>
+          <input type="text" name="prediction"><br>
+          <input type="submit" data-inline="true" value="Submit">-->
+          <form method="post" action="/action_page_post.php">
+      <div data-role="rangeslider">
+        <label for="price-min">Price:</label>
+        <input type="range" name="price-min" id="price-min" value="200" min="0" max="1000">
+      </div>
+        <input type="submit" data-inline="true" value="Submit">
+        <p>The range slider can be useful for allowing users to select a specific price range when browsing products.</p>
+      </form>
+      </div>
+    </div>
+</div>
+
 <script type="text/javascript">
     var last_page_read = {};
     var resource_id;
@@ -569,7 +592,7 @@ function csrfSafeMethod(method) {
 }
 
 function visSectionClick(d){
-    //d3.select("#toc_section-"+d.id).on("click")();
+    //d3.select("#toc-section-"+d.id).on("click")();
     //tocSectionClick(d);
     console.log(d.epage-d.spage);
 }
@@ -626,29 +649,35 @@ function initToc(course_structure){
       });
 
       // Update the nodes…
-      var node = svg.selectAll("g.toc_section")
+      var node = svg.selectAll("g.toc-section")
           .data(nodes, function(d) { return d.id || (d.id = ++i); });
 
       var nodeEnter = node.enter().append("g")
-          .attr("class", "toc_section")
-          .attr("id",function(d){return "toc_section-"+d.id;})
+          .attr("class", "toc-section")
+          .attr("id",function(d){return "toc-section-"+d.id;})
           .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
-          .style("opacity", 1e-6);
+          .style("opacity", 1e-6)
+          .on("click", tocSectionClick);
 
       // Enter any new nodes at the parent's previous position
-      nodeEnter.append("text")
-            .attr("class","arrow")
-            .text("\u25BC");
+      nodeEnter.filter(function(d) {
+                return d.depth<3;
+            })
+        .append('path')
+        .attr("class","toc-toggle active")
+        .attr("d", d3.svg.symbol().type("triangle-down").size(70))
+        .attr("transform", function(d) { return "translate(" + -5 + "," + 0+ ")"; })
+        .style("fill", "#EB9100")
+        .on("click", tocSectionToggle);
 
       nodeEnter.append("rect")
           .attr("y", -barHeight / 2)
           .attr("height", barHeight)
-          .attr("width", barWidth)
-          .style("fill", color)
-          .on("click", tocSectionClick);
+          .attr("width", function(d){ return d3.select("#svg-toc").attr("width");})
+          .style("fill", color);
 
       nodeEnter.append("text")
-          .attr("dy", 10)
+          .attr("dy", 5)
           .attr("dx", 10)
           .text(function(d) { return d.name; });
 
@@ -710,9 +739,23 @@ function initToc(course_structure){
     }
 
     // Toggle children on click.
-    function tocSectionClick(d) {
-        d3.selectAll(".toc_section.active").attr("class","toc_section");
-        d3.select(this.parentNode).attr("class","toc_section active");
+    function tocSectionToggle(d) {
+
+        d3.event.stopPropagation();
+
+        if(d3.select(this).classed("active")){
+            d3.select(this)
+                .classed("active",false)
+                .transition()
+                .duration(500)
+                .attr("transform","translate(-5,0) rotate(-90)");
+        }else{
+            d3.select(this)
+                .classed("active",true)
+                .transition()
+                .duration(500)
+                .attr("transform","translate(-5,0) rotate(0)");
+        }
         if (d.children) {
             d._children = d.children;
             d.children = null;
@@ -720,23 +763,26 @@ function initToc(course_structure){
             d.children = d._children;
             d._children = null;
         }
-        console.log("tocSectionClick");
-        console.log(d);
+
+        update(d);
+    }
+
+    function tocSectionClick(d){
+        d3.selectAll(".toc-section.active").attr("class","toc-section");
+        d3.select(this).attr("class","toc-section active");
         var section_metadata = d;
         var section_id = section_metadata["id"];
         var resource_id = section_metadata["resourceid"];
         var resource_id = section_metadata["resourceid"];
         var page_num = section_metadata["spage"];
         var section_name = section_metadata["name"];
-
+        console.log("prueba");
         loadResource(section_id,section_name,resource_id,page_num);
-
+        console.log("test");
         var last_section_read = $.grep(course_linear_structure, function(d){ return d.section == section_id; });
         last_section_read[0].page=last_section_read["spage"];
         last_page_read = last_section_read[0];
         console.log(last_page_read);
-
-        update(d);
     }
 
     function color(d) {
@@ -765,6 +811,10 @@ function initToc(course_structure){
         if (last_page_read["page"] < last_page_read["epage"]){
             last_page_read["page"] = last_page_read["page"] + 1;
             loadResource(last_page_read["section"],"test",last_page_read["resource"],last_page_read["page"]);
+            if(last_page_read["page"] == last_page_read["epage"]){
+                console.log("last page");
+                document.getElementById('quiz-div').style.display='block';
+            }
         }else{
             var index_last_page_read = course_linear_structure.map(function(d) { return d.section; }).indexOf(last_page_read["section"]);
             console.log(index_last_page_read);
