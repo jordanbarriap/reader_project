@@ -145,9 +145,12 @@ $.fn.scrollEnd = function(callback, timeout) {
 function loadHtml() {
     {% autoescape off %}
     course_hierarchical_structure = {{course_hierarchical}};
-    course_linear_structure = {{course_linear}};
+    //course_linear_structure = {{course_linear}};
+    console.log(course_hierarchical_structure);
+    hierarchicalToLinearStructure(course_hierarchical_structure);
     last_page_read = {{last_page_read}};
     {% endautoescape %}
+    console.log(course_linear_structure);
     //If the user has not read any page from the course, the first page needs to be shown
     if(jQuery.isEmptyObject(last_page_read)){
         last_page_read = course_linear_structure[0];
@@ -289,7 +292,8 @@ function initProgressVis(course_structure){
 
     var color = d3.scale.linear()
         .domain([0.0, 1.0])
-        .range(["#ECEEF5", "#011568"]);
+        //.range(["#ECEEF5", "#011568"]);
+        .range(["#E0E0E0", "#339933"]);
 
     var x = d3.scale.linear()
         .range([0, w]);
@@ -301,8 +305,8 @@ function initProgressVis(course_structure){
     var x_comp = d3.scale.linear()
         .range([w, 0]);
 
-    var separation = 0.5;
-      var y_separation = 0;
+    var separation = 1.5;
+      var y_separation = 1;
 
     var fisheye = d3.fisheye.circular()
     .radius(100)
@@ -338,15 +342,27 @@ function initProgressVis(course_structure){
           .attr("width", function(d) { return x(d.dy); })
           .attr("height", function(d) { return y(d.dx); })
           .attr("fill", function (d) {
-                    var visited_pages = d.num_visited_pages;
-                    var total_section_pages = d.epage - d.spage;
+                    //var visited_pages = d.num_visited_pages;
+                    /*var total_section_pages = 0;
+                    if(d.children){
+                        if(d.epage && d.spage){
+                            total_section_pages = d.epage - d.spage+1;
+                        }
+                        else{
+                            total_section_pages = 1;
+                        }
+                    }else{
+                        total_section_pages = d.epage - d.spage+1;
+
+                    }
                     var proportion_visited_pages = visited_pages/total_section_pages;
+                    console.log(proportion_visited_pages);
                     /*for (count = 0; count < diagram.length; count++) {
                         if (diagram[count].docNum == d.docno) {
                             return d3.rgb(diagram[count].diagramColor)
                         }
                     }*/
-                    return color(proportion_visited_pages);
+                    return color(d.group_read_proportion);
                 })
           .attr("class", function (d) {
                     classname = "partition_depth_" + d.depth;
@@ -361,7 +377,8 @@ function initProgressVis(course_structure){
           .attr("stroke-width","1px")
           .attr("stroke","white")
           .attr("opacity",1)
-          .on("mouseover",visSectionMouseover);
+          .on("mouseover",visSectionMouseover)
+          .on("mouseout",visSectionMouseout);
           /*.on("click", visSectionClick)
           .on("dblclick", partitionTableDoubleClick)
           .on("mouseout",partitionTableMouseout);*/
@@ -373,7 +390,7 @@ function initProgressVis(course_structure){
             .append("g")
             .attr("id","g_progress_vis");
 
-    var rect = svg.selectAll("rect");
+     var rect = svg.selectAll("rect");
 
      rect = rect
           .data(partition(root))
@@ -397,8 +414,20 @@ function initProgressVis(course_structure){
           .attr("height", function(d) { return y(d.dx); })
           .attr("fill", function (d) {
                     var visited_pages = d.num_visited_pages;
-                    var total_section_pages = d.epage - d.spage;
+                    var total_section_pages = d.num_pages;
+                    /*if(d.children){
+                        if(d.epage && d.spage){
+                            total_section_pages = d.epage - d.spage+1;
+                        }
+                        else{
+                            total_section_pages = 1;
+                        }
+                    }else{
+                        total_section_pages = d.epage - d.spage+1;
+
+                    }*/
                     var proportion_visited_pages = visited_pages/total_section_pages;
+                    console.log(proportion_visited_pages);
                     /*for (count = 0; count < diagram.length; count++) {
                         if (diagram[count].docNum == d.docno) {
                             return d3.rgb(diagram[count].diagramColor)
@@ -420,12 +449,26 @@ function initProgressVis(course_structure){
           .attr("stroke","white")
           .attr("opacity",1)
           .on("click", visSectionClick)
-          .on("mouseover",visSectionMouseover);
+          .on("mouseover",visSectionMouseover)
+          .on("mouseout",visSectionMouseout);
           /*.on("dblclick", partitionTableDoubleClick)
           .on("mouseover",partitionTableMouseover)
           .on("mouseout",partitionTableMouseout);*/
 
+        //Container for the gradients
+        var defs = svg.append("defs");
 
+        //Filter for the outside glow
+        var filter = defs.append("filter")
+            .attr("id","glow");
+        filter.append("feGaussianBlur")
+            .attr("stdDeviation","4")
+            .attr("result","coloredBlur");
+        var feMerge = filter.append("feMerge");
+        feMerge.append("feMergeNode")
+            .attr("in","coloredBlur");
+        feMerge.append("feMergeNode")
+            .attr("in","SourceGraphic");
 
         /*svg.on("mousemove", function() {
             fisheye.focus(d3.mouse(this));
@@ -773,7 +816,6 @@ function initToc(course_structure){
         var section_metadata = d;
         var section_id = section_metadata["id"];
         var resource_id = section_metadata["resourceid"];
-        var resource_id = section_metadata["resourceid"];
         var page_num = section_metadata["spage"];
         var section_name = section_metadata["name"];
         console.log("prueba");
@@ -827,25 +869,25 @@ function initToc(course_structure){
     }
 
     function visSectionMouseover(d, i) {
-        d3.select(this).style("opacity", 1.0);
+        //d3.select(this).style("opacity", 1.0);
 
-        d3.select(this).style("stroke","#000");
+        //d3.select(this).style("stroke","#000");
         //d3.select(this).style("stroke-width", "1");
-
-
-        // Fade all the segments.
-        d3.selectAll("path").style("opacity", 0.3);
 
         // Then highlight only those that are an ancestor of the current segment.
         var sequenceArray = getAncestors(d);
         console.log("ancestors");
         console.log(sequenceArray);
 
-        d3.selectAll("rect")
+        var highlighted_sections = d3.selectAll("rect")
             .filter(function(node) {
                 return (sequenceArray.indexOf(node) >= 0);
             })
-            .style("opacity", 1);
+            .style("opacity", 1)
+            .style("stroke", "black")
+            .style("stroke-width","1")
+            .style("filter", "url(#glow)");
+        //highlighted_sections.moveToFront();
 
 
 
@@ -871,6 +913,12 @@ function initToc(course_structure){
         return false;
     }
 
+    function visSectionMouseout(d, i) {
+
+        d3.selectAll("rect").style("stroke","white");
+
+    }
+
     function getAncestors(node) {
       var path = [];
       var current = node;
@@ -880,6 +928,37 @@ function initToc(course_structure){
       }
       return path;
     }
+
+    function hierarchicalToLinearStructure(data){
+        if (data.children){
+            var current_subsection = Object.assign({}, data);
+            delete current_subsection['children'];
+            course_linear_structure.push(current_subsection);
+            for(subsection in data.children) {
+                data.children.forEach(function(d,i){
+                    hierarchicalToLinearStructure(d);
+                });
+            }
+        }else{
+            course_linear_structure.push(data);
+        }
+    }
+
+    // https://github.com/wbkd/d3-extended
+    d3.selection.prototype.moveToFront = function() {
+      return this.each(function(){
+        this.parentNode.appendChild(this);
+      });
+    };
+
+    d3.selection.prototype.moveToBack = function() {
+        return this.each(function() {
+            var firstChild = this.parentNode.firstChild;
+            if (firstChild) {
+                this.parentNode.insertBefore(this, firstChild);
+            }
+        });
+    };
 
 </script>
 </body>
