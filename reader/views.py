@@ -15,6 +15,7 @@ import datetime
 
 user_id = 0
 group_id = 0
+num_students = 0
 '''def load_course(request,course_id):
     if request.user.is_authenticated():
         user_id = request.user.id
@@ -34,7 +35,7 @@ group_id = 0
         return render(request, "reader.html", {"course":{"id":course_json.id,"name":course_json.name}, "course_hierarchical":hierarchical_structure,"course_linear":linear_structure,"last_page_read":last_page_read})'''
 
 def load_course(request,url_group_id):
-    global user_id, group_id
+    global user_id, group_id, num_students
     group_id = url_group_id
     course_id = Group.objects.only("course").get(id=group_id).course.id
     if request.user.is_authenticated():
@@ -59,32 +60,39 @@ def calculate_reading_progress(node):
     if "children" not in node:
         num_pages = get_number_of_pages(node)
         read_pages = get_number_of_read_pages(node)
+        group_read_pages = get_number_of_group_read_pages(node)
         set_number_of_pages(node,num_pages)
         set_number_of_read_pages(node, read_pages)
-        return num_pages, read_pages
+        set_number_of_group_read_pages(node, group_read_pages)
+        return num_pages, read_pages, group_read_pages
     else:
         if has_pages(node):
-            subsections_num_pages, subsections_read_pages = calculate_subsections_reading_progress(node["children"])
+            subsections_num_pages, subsections_read_pages, subsections_group_read_pages = calculate_subsections_reading_progress(node["children"])
             num_pages = get_number_of_pages(node) + subsections_num_pages
             read_pages = get_number_of_read_pages(node) + subsections_read_pages
+            group_read_pages = get_number_of_group_read_pages(node) + subsections_group_read_pages
             set_number_of_pages(node,num_pages)
             set_number_of_read_pages(node,read_pages)
-            return num_pages, read_pages
+            set_number_of_group_read_pages(node, group_read_pages)
+            return num_pages, read_pages, group_read_pages
         else:
-            num_pages, read_pages = calculate_subsections_reading_progress(node["children"])
+            num_pages, read_pages, group_read_pages = calculate_subsections_reading_progress(node["children"])
             set_number_of_pages(node,num_pages)
             set_number_of_read_pages(node, read_pages)
-            return num_pages, read_pages
+            set_number_of_group_read_pages(node, group_read_pages)
+            return num_pages, read_pages, group_read_pages
 
 
 def calculate_subsections_reading_progress(subsections):
     total_pages = 0
     read_pages = 0
+    group_read_pages = 0
     for subsection in subsections:
-        subsection_total_pages, subsection_read_pages = calculate_reading_progress(subsection)
+        subsection_total_pages, subsection_read_pages, group_read_pages = calculate_reading_progress(subsection)
         total_pages = total_pages + subsection_total_pages
         read_pages = read_pages + subsection_read_pages
-    return total_pages, read_pages
+        group_read_pages = group_read_pages + get_number_of_group_read_pages(subsection)
+    return total_pages, read_pages, group_read_pages
 
 
 def get_number_of_pages(node):
@@ -102,6 +110,15 @@ def get_number_of_read_pages(node):
     return len(read_pages)
 
 
+def get_number_of_group_read_pages(node):
+    global user_id, group_id, num_students
+    section_id = node["id"]
+    group_read_pages = 0
+    tuples_student_and_page_read = ReadingLog.objects.values_list('user__id','page').exclude(user__id=user_id).filter(group__id=group_id, section=section_id, action="page-load").distinct().count()
+    group_read_pages = tuples_student_and_page_read / (num_students-1)
+    return group_read_pages
+
+
 def has_pages(node):
     if "spage" in node and "epage" in node and "resourceid" in node:
         return True
@@ -115,6 +132,10 @@ def set_number_of_pages(node, num_pages):
 
 def set_number_of_read_pages(node, num_read_pages):
     node["read_pages"] = num_read_pages
+
+
+def set_number_of_group_read_pages(node, num_group_read_pages):
+    node["group_read_pages"] = num_group_read_pages
 
 
 '''def enrich_course_structure(array,data,user_id,group_id,num_students):

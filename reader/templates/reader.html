@@ -149,20 +149,23 @@ function loadHtml() {
     {% endautoescape %}
     hierarchicalToLinearStructure(course_hierarchical_structure);
     //If the user has not read any page from the course, the first page needs to be shown
+    console.log(last_page_read);
     if(jQuery.isEmptyObject(last_page_read)){
         last_page_read = course_linear_structure[0];
         last_page_read["page"]=last_page_read["spage"];
     }else{
-        var last_section_read = $.grep(course_linear_structure, function(d){ return d.section == last_page_read["section"]; });
-        last_section_read.page=last_page_read["page"];
+        var last_section_read = $.grep(course_linear_structure, function(d){ return d.id == last_page_read["section"]; });
+        var last_page_read_number = parseInt(last_page_read["page"]);
         last_page_read = last_section_read[0];
+        last_page_read["page"] = last_page_read_number;
+        console.log(last_page_read);
     }
 
     initProgressVis(course_hierarchical_structure);
 
     initToc(course_hierarchical_structure);
-    
-    loadResource(last_page_read["section"],"test",last_page_read["resource"],last_page_read["page"]);
+
+    loadResource(last_page_read["id"],last_page_read["name"],last_page_read["resourceid"],last_page_read["page"]);
 
     var text_html = $('.t').text();
     console.log($(".t")[0]);
@@ -204,8 +207,7 @@ function loadResource(section_id,section_name,resource_id,page_num){
 
          //Set section title at the top of the reader
         $(".title-current-section").html(section_name);
-        var text_html = $('.t').text();
-        console.log(text_html);
+
         //initWordCloud(text_html);
 
         /*var content = $('#page-container').annotator();
@@ -341,27 +343,10 @@ function initProgressVis(course_structure){
           .attr("width", function(d) { return x(d.dy); })
           .attr("height", function(d) { return y(d.dx); })
           .attr("fill", function (d) {
-                    //var visited_pages = d.num_visited_pages;
-                    /*var total_section_pages = 0;
-                    if(d.children){
-                        if(d.epage && d.spage){
-                            total_section_pages = d.epage - d.spage+1;
-                        }
-                        else{
-                            total_section_pages = 1;
-                        }
-                    }else{
-                        total_section_pages = d.epage - d.spage+1;
-
-                    }
+                    var visited_pages = d.group_read_pages;
+                    var total_section_pages = d.num_pages;
                     var proportion_visited_pages = visited_pages/total_section_pages;
-                    console.log(proportion_visited_pages);
-                    /*for (count = 0; count < diagram.length; count++) {
-                        if (diagram[count].docNum == d.docno) {
-                            return d3.rgb(diagram[count].diagramColor)
-                        }
-                    }*/
-                    return color(d.group_read_proportion);
+                    return color(proportion_visited_pages);
                 })
           .attr("class", function (d) {
                     classname = "partition_depth_" + d.depth;
@@ -387,7 +372,8 @@ function initProgressVis(course_structure){
         .attr("width", svg_size)
         .attr("height", h)
             .append("g")
-            .attr("id","g_progress_vis");
+            .attr("id","g_progress_vis")
+            .attr("transform","translate(-10,0)");//TODO: parametrize horizontal translation
 
      var rect = svg.selectAll("rect");
 
@@ -406,7 +392,6 @@ function initProgressVis(course_structure){
             .append("rect")
           .attr("x", function(d) {
                 return x(d.y)+d.depth*separation;
-                //return d.depth*(separation+widthLayer);
             })
           .attr("y", function(d) { return y(d.x)+y_separation; })
           .attr("width", function(d) { return x(d.dy); })
@@ -699,7 +684,7 @@ function initToc(course_structure){
           .attr("y", -barHeight / 2)
           .attr("height", barHeight)
           .attr("width", function(d){ return d3.select("#svg-toc").attr("width");})
-          .style("fill", color);
+          .style("fill", "white");
 
       nodeEnter.append("text")
           .attr("dy", 5)
@@ -717,7 +702,7 @@ function initToc(course_structure){
           .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
           .style("opacity", 1)
         .select("rect")
-          .style("fill", color);
+          .style("fill", "white");
 
       // Transition exiting nodes to the parent's new position.
       node.exit().transition()
@@ -803,7 +788,7 @@ function initToc(course_structure){
         console.log("prueba");
         loadResource(section_id,section_name,resource_id,page_num);
         console.log("test");
-        var last_section_read = $.grep(course_linear_structure, function(d){ return d.section == section_id; });
+        var last_section_read = $.grep(course_linear_structure, function(d){ return d.id == section_id; });
         last_section_read[0].page=last_section_read["spage"];
         last_page_read = last_section_read[0];
         console.log(last_page_read);
@@ -812,37 +797,42 @@ function initToc(course_structure){
 }
 
     function loadPreviousPage(){
-        console.log(last_page_read);
-        if (last_page_read["page"] > last_page_read["spage"]){
-            last_page_read["page"] = last_page_read["page"] - 1;
-            loadResource(last_page_read["section"],"test",last_page_read["resource"],last_page_read["page"]);
+        var epage = parseInt(last_page_read["epage"])
+        var spage = parseInt(last_page_read["spage"])
+        var page = parseInt(last_page_read["page"])
+        console.log("epage: "+epage+" spage: "+spage+" page: "+page);
+        if (last_page_read["page"] > spage){
+            last_page_read["page"] = page - 1;
+            loadResource(last_page_read["id"],last_page_read["name"],last_page_read["resourceid"],last_page_read["page"]);
         }else{
             var index_last_page_read = course_linear_structure.map(function(d) { return d.section; }).indexOf(last_page_read["section"]);
             console.log(index_last_page_read);
             if(index_last_page_read >=0 && index_last_page_read < course_linear_structure.length){
                 last_page_read = course_linear_structure[index_last_page_read-1];
                 last_page_read["page"] = last_page_read["epage"];
-                loadResource(last_page_read["section"],"test",last_page_read["resource"],last_page_read["page"]);
+                loadResource(last_page_read["id"],last_page_read["name"],last_page_read["resourceid"],last_page_read["page"]);
             }
         }
     }
 
     function loadNextPage(){
-        console.log(last_page_read);
-        if (last_page_read["page"] < last_page_read["epage"]){
-            last_page_read["page"] = last_page_read["page"] + 1;
-            loadResource(last_page_read["section"],"test",last_page_read["resource"],last_page_read["page"]);
-            if(last_page_read["page"] == last_page_read["epage"]){
-                console.log("last page");
+
+        var epage = parseInt(last_page_read["epage"]);
+        var spage = parseInt(last_page_read["spage"]);
+        var page = parseInt(last_page_read["page"]);
+        console.log("epage: "+epage+" spage: "+spage+" page: "+page);
+        if (page < epage){
+            last_page_read["page"] = page + 1;
+            loadResource(last_page_read["id"], last_page_read["name"],last_page_read["resourceid"],last_page_read["page"]);
+            if(last_page_read["page"] == epage){
                 document.getElementById('quiz-div').style.display='block';
             }
         }else{
-            var index_last_page_read = course_linear_structure.map(function(d) { return d.section; }).indexOf(last_page_read["section"]);
-            console.log(index_last_page_read);
+            var index_last_page_read = course_linear_structure.map(function(d) { return d.id; }).indexOf(last_page_read["id"]);
             if(index_last_page_read >=0 && index_last_page_read < course_linear_structure.length){
                 last_page_read = course_linear_structure[index_last_page_read+1];
                 last_page_read["page"] = last_page_read["spage"];
-                loadResource(last_page_read["section"],"test",last_page_read["resource"],last_page_read["page"]);
+                loadResource(last_page_read["id"],last_page_read["name"],last_page_read["resourceid"],last_page_read["page"]);
             }
         }
     }
@@ -909,16 +899,20 @@ function initToc(course_structure){
     }
 
     function hierarchicalToLinearStructure(data){
+
         if (data.children){
             var current_subsection = Object.assign({}, data);
             delete current_subsection['children'];
-            course_linear_structure.push(current_subsection);
+            if(current_subsection.epage !==undefined && current_subsection.spage!==undefined && current_subsection.resourceid!==undefined) {
+                course_linear_structure.push(current_subsection);
+            }
             data.children.forEach(function(d,i){
                     hierarchicalToLinearStructure(d);
-            });
+                });
         }else{
             course_linear_structure.push(data);
         }
+
     }
 
     // https://github.com/wbkd/d3-extended
