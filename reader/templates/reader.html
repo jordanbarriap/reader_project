@@ -52,7 +52,7 @@
     <div id="concepts-div"></div>
 </div>-->
 
-<div id="quiz-div" class="w3-modal">
+<!--<div id="quiz-div" class="w3-modal">
     <div class="w3-modal-content">
       <div class="w3-container">
         <!--<span onclick="document.getElementById('id01').style.display='none'" class="w3-button w3-display-topright">&times;</span>
@@ -71,7 +71,7 @@
       </div>
     </div>
 </div>
-
+-->
 <script type="text/javascript">
     var last_page_read = {};
     var resource_id;
@@ -145,24 +145,23 @@ $.fn.scrollEnd = function(callback, timeout) {
 function loadHtml() {
     {% autoescape off %}
     course_hierarchical_structure = {{course_hierarchical}};
-    //course_linear_structure = {{course_linear}};
-    console.log(course_hierarchical_structure);
-    hierarchicalToLinearStructure(course_hierarchical_structure);
     last_page_read = {{last_page_read}};
     {% endautoescape %}
-    console.log(course_linear_structure);
+    hierarchicalToLinearStructure(course_hierarchical_structure);
     //If the user has not read any page from the course, the first page needs to be shown
     if(jQuery.isEmptyObject(last_page_read)){
         last_page_read = course_linear_structure[0];
         last_page_read["page"]=last_page_read["spage"];
     }else{
         var last_section_read = $.grep(course_linear_structure, function(d){ return d.section == last_page_read["section"]; });
-        last_section_read[0].page=last_page_read["page"];
+        last_section_read.page=last_page_read["page"];
         last_page_read = last_section_read[0];
     }
-    console.log(last_page_read);
+
     initProgressVis(course_hierarchical_structure);
+
     initToc(course_hierarchical_structure);
+    
     loadResource(last_page_read["section"],"test",last_page_read["resource"],last_page_read["page"]);
 
     var text_html = $('.t').text();
@@ -413,26 +412,9 @@ function initProgressVis(course_structure){
           .attr("width", function(d) { return x(d.dy); })
           .attr("height", function(d) { return y(d.dx); })
           .attr("fill", function (d) {
-                    var visited_pages = d.num_visited_pages;
+                    var visited_pages = d.read_pages;
                     var total_section_pages = d.num_pages;
-                    /*if(d.children){
-                        if(d.epage && d.spage){
-                            total_section_pages = d.epage - d.spage+1;
-                        }
-                        else{
-                            total_section_pages = 1;
-                        }
-                    }else{
-                        total_section_pages = d.epage - d.spage+1;
-
-                    }*/
                     var proportion_visited_pages = visited_pages/total_section_pages;
-                    console.log(proportion_visited_pages);
-                    /*for (count = 0; count < diagram.length; count++) {
-                        if (diagram[count].docNum == d.docno) {
-                            return d3.rgb(diagram[count].diagramColor)
-                        }
-                    }*/
                     return color(proportion_visited_pages);
                 })
           .attr("class", function (d) {
@@ -827,9 +809,6 @@ function initToc(course_structure){
         console.log(last_page_read);
     }
 
-    function color(d) {
-      return "#fff";//d._children ? "#3182bd" : d.children ? "#c6dbef" : "#fd8d3c";
-    }
 }
 
     function loadPreviousPage(){
@@ -934,11 +913,9 @@ function initToc(course_structure){
             var current_subsection = Object.assign({}, data);
             delete current_subsection['children'];
             course_linear_structure.push(current_subsection);
-            for(subsection in data.children) {
-                data.children.forEach(function(d,i){
+            data.children.forEach(function(d,i){
                     hierarchicalToLinearStructure(d);
-                });
-            }
+            });
         }else{
             course_linear_structure.push(data);
         }
