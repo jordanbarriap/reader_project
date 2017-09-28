@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from reader.models import ReadingLog
 from annotator.models import Range, Annotation
+from quiz.models import Quiz, MCQuestion, Answer
 
 class ReadingLogSerializer(serializers.ModelSerializer):
     class Meta:

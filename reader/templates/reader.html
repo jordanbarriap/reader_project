@@ -4,6 +4,7 @@
     <link rel="stylesheet" type="text/css" href="{% static "annotorious-0.6.4/css/annotorious.css" %}" />
     <link rel="stylesheet" type="text/css" href="http://assets.annotateit.org/annotator/v1.2.7/annotator.min.css" />
     <link rel="stylesheet" type="text/css" href="{% static "css/reader.css" %}" />
+    <link rel="stylesheet" type="text/css" href="{% static "css/modal.css" %}" />
 
     <!--<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>-->
 
@@ -26,8 +27,6 @@
     <script type="text/javascript" src="{% static "js/cloud.js" %}"></script>
     <script type="text/javascript" src="{% static "js/fisheye.js" %}"></script>
 
-    <!--<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">-->
-
 </head>
 <body>
 <div id="left-div">
@@ -38,11 +37,9 @@
 </div>
 <div id="reader-div">
    <div id="reader-controls">
-      <ul class="pager">
-        <li class="previous"><a href="#">Previous</a></li>
-        <li><span class="title-current-section">Title</span></li>
-        <li class="next"><a href="#">Next</a></li>
-      </ul>
+        <button class="previous-btn">❮ Previous</button>
+        <span class="title-current-section"></span>
+        <button class="next-btn">Next ❯</button>
     </div>
     <div id="reader-canvas">
     </div>
@@ -52,31 +49,30 @@
     <div id="concepts-div"></div>
 </div>-->
 
-<!--<div id="quiz-div" class="w3-modal">
-    <div class="w3-modal-content">
-      <div class="w3-container">
-        <!--<span onclick="document.getElementById('id01').style.display='none'" class="w3-button w3-display-topright">&times;</span>
-        <p>You will be presented with 5 questions</p>
-          <p>How many of them you would think you will answer correctly?</p><br>
-          <input type="text" name="prediction"><br>
-          <input type="submit" data-inline="true" value="Submit">-->
-          <form method="post" action="/action_page_post.php">
-      <div data-role="rangeslider">
-        <label for="price-min">Price:</label>
-        <input type="range" name="price-min" id="price-min" value="200" min="0" max="1000">
+<!-- The Modal -->
+<div id="myModal" class="modal">
+  <!-- Modal content -->
+    <div class="modal-content">
+      <div class="modal-header">
+        <!--<span class="close">&times;</span>-->
+        <h2>Section Quiz</h2>
       </div>
-        <input type="submit" data-inline="true" value="Submit">
-        <p>The range slider can be useful for allowing users to select a specific price range when browsing products.</p>
-      </form>
+      <div class="modal-body">
+
+      </div>
+      <div class="modal-footer">
+        <button class="submit-btn btn">Submit</button>
       </div>
     </div>
 </div>
--->
+
 <script type="text/javascript">
     var last_page_read = {};
     var resource_id;
     var course_hierarchical_structure = {};
     var course_linear_structure = [];
+    var quiz_data= {};
+    var modal;
 
 
     jQuery(function ($) {
@@ -98,17 +94,35 @@
         //$('#page-container').annotator()
                             //.annotator('addPlugin', 'Tags');
 
-        $('.previous').click( function(e) {
+        $('.previous-btn').click( function(e) {
             e.preventDefault();
             loadPreviousPage();
             return false;
         });
 
-        $('.next').click( function(e) {
+        $('.next-btn').click( function(e) {
             e.preventDefault();
             loadNextPage();
             return false;
         });
+
+        // Get the modal
+        modal = document.getElementById('myModal');
+
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
+
+        // When the user clicks on <span> (x), close the modal
+        /*span.onclick = function() {
+            modal.style.display = "none";
+        }*/
+
+        // When the user clicks anywhere outside of the modal, close it
+        /*window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }*/
 
         function gText(e) {
             t = window.getSelection().toString();
@@ -669,7 +683,7 @@ function initToc(course_structure){
           .style("opacity", 1e-6)
           .on("click", tocSectionClick);
 
-      // Enter any new nodes at the parent's previous position
+      // Enter any new nodes at the parent's previous-btn position
       nodeEnter.filter(function(d) {
                 return d.depth<3;
             })
@@ -716,7 +730,7 @@ function initToc(course_structure){
       var link = svg.selectAll("path.link")
           .data(tree.links(nodes), function(d) { return d.target.id; });
 
-      // Enter any new links at the parent's previous position.
+      // Enter any new links at the parent's previous-btn position.
       link.enter().insert("path", "g")
           .attr("class", "link")
           .attr("d", function(d) {
@@ -801,11 +815,11 @@ function initToc(course_structure){
         var spage = parseInt(last_page_read["spage"])
         var page = parseInt(last_page_read["page"])
         console.log("epage: "+epage+" spage: "+spage+" page: "+page);
-        if (last_page_read["page"] > spage){
+        if (page > spage){
             last_page_read["page"] = page - 1;
             loadResource(last_page_read["id"],last_page_read["name"],last_page_read["resourceid"],last_page_read["page"]);
         }else{
-            var index_last_page_read = course_linear_structure.map(function(d) { return d.section; }).indexOf(last_page_read["section"]);
+            var index_last_page_read = course_linear_structure.map(function(d) { return d.id; }).indexOf(last_page_read["id"]);
             console.log(index_last_page_read);
             if(index_last_page_read >=0 && index_last_page_read < course_linear_structure.length){
                 last_page_read = course_linear_structure[index_last_page_read-1];
@@ -823,9 +837,22 @@ function initToc(course_structure){
         console.log("epage: "+epage+" spage: "+spage+" page: "+page);
         if (page < epage){
             last_page_read["page"] = page + 1;
-            loadResource(last_page_read["id"], last_page_read["name"],last_page_read["resourceid"],last_page_read["page"]);
+            loadResource(last_page_read["id"], last_page_read["name"], last_page_read["resourceid"], last_page_read["page"]);
             if(last_page_read["page"] == epage){
-                document.getElementById('quiz-div').style.display='block';
+                $.get( "http://{{ request.META.HTTP_HOST }}/api/quiz",
+                 {"user": {{ request.user.id }},
+                 "group": "{{ group }}",
+                 "section": last_page_read["id"]},
+                function(data){
+                    quiz_data = data;
+                    showQuiz(quiz_data);
+                });
+                $(".next-btn").text("Go to quiz ✎");
+                $(".next-btn").removeClass("next-btn").addClass("quiz-btn");
+                $(".quiz-btn").unbind( "click" );
+                $(".quiz-btn").click(openQuizWindow);
+                $(".submit-btn").click(submitQuiz);
+
             }
         }else{
             var index_last_page_read = course_linear_structure.map(function(d) { return d.id; }).indexOf(last_page_read["id"]);
@@ -880,6 +907,75 @@ function initToc(course_structure){
         /* END iframe selection */
         //$("#tip").html("[Book] <b>" + bookName + "</b>: " + d.name);
         return false;
+    }
+
+    function openQuizWindow(){
+        modal.style.display = "block";
+    }
+
+    function showQuiz(data){
+        var mcquestions = data["mcquestions"];
+        var mcquestion_ids = Object.keys(mcquestions);
+        //Insert questions in the quiz
+        $(".modal-body").empty();
+        question_number = 0;
+        for(var i=0;i<mcquestion_ids.length;i++){
+            var statement = mcquestions[mcquestion_ids[i]]["statement"];
+            question_number = question_number + 1;
+            $(".modal-body").append("<p>"+question_number+".   "+statement+"</p>");
+            var mcquestion_id=mcquestion_ids[i];
+            $(".modal-body").append("<ul id='mcq"+mcquestion_id+"'></ul>");
+            var answers = mcquestions[mcquestion_id]["answers"];
+            for(var j=0;j<answers.length;j++){
+                var answer_id = answers[j]["id"]
+                var answer_statement =  answers[j]["statement"];
+                var order = answers[j]["order"];
+                $("#mcq"+mcquestion_ids[i]).append("<input class='mcquestion' type='radio' name='q"+mcquestion_id+"' value="+answer_id+">"+answer_statement+"<br>");
+            }
+            $(".modal-body").append("</br>");
+        }
+
+        var textualquestions = data["textualquestions"];
+        var textualquestion_ids = Object.keys(textualquestions);
+        for(var i=0;i<textualquestion_ids.length;i++){
+            question_number = question_number + 1;
+            var statement = textualquestions[textualquestion_ids[i]];
+            $(".modal-body").append("<p>"+question_number+".   "+statement+"</p>");
+            $(".modal-body").append("<textarea class='textualquestion' name='tq"+textualquestion_ids[i]+"' rows='3'></textarea>");
+        }
+    }
+
+    function showPreTest(data){
+        var kcs = data["concepts"];
+        var kcs_ids = Object.keys(kcs);
+        for(var i=0;i<kcs_ids.length;i++){
+            var kc_id = kcs_ids[i];
+             $(".modal-body").append("<p>"+kcs[kc_id]+"</p><input type='range' min='1' max='7' value='3' class='slider' id='myRange'>");
+        }
+        $(".modal-body").empty();
+    }
+
+    function submitQuiz(){
+        var answers = [];
+        $.get( "http://{{ request.META.HTTP_HOST }}/api/check_quiz",
+                 {"user": {{ request.user.id }},
+                 "group": "{{ group }}",
+                 "answers": answers},
+                function(data){
+                    console.log(data);
+                });
+
+        $(".submit-btn").text("Go to next section ❯");
+
+        $(".submit-btn").unbind("click");
+        $(".submit-btn").click(function(e){
+            e.preventDefault();
+            modal.style.display = "none";
+            $(".quiz-btn").removeClass("quiz-btn").addClass("next-btn");
+            $(".next-btn").text("Next ❯");
+            return false;
+        });
+        loadNextPage();
     }
 
     function visSectionMouseout(d, i) {
