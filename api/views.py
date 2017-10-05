@@ -146,7 +146,7 @@ def quiz(request):
             for question in textualquestions:
                 question_id = question["textualquestions__id"]
                 if question_id not in textualquestions_json:
-                    textualquestions_json[question_id] = question["textualquestions__statement"]
+                    textualquestions_json[question_id] = {"statement": question["textualquestions__statement"]}
 
         return JSONResponse({"mcquestions":mcquestions_json, "textualquestions":textualquestions_json}, status=201)
 
@@ -155,15 +155,33 @@ def quiz(request):
 
 def check_quiz(request):
     """
-    Returning a requested quiz for an specific course section
+    Check correctness of student answers
     """
     if request.method == 'GET':
         answers = request.GET["answers"]
         mc_answers = answers["mc_answers"]
         text_answers = answers["text_answers"]
         for answer in text_answers:
-            answer_log = quiz_models.AnswerLog(name='Beatles Blog', tagline='All the latest Beatles news.')
+            print(answer)
+            #answer_log = quiz_models.AnswerLog(quiz=answer["quiz"],question=answer["id"],answer=)
+            #answer_log.save()
         return JSONResponse({"answers":answers}, status=201)
+
+    else:
+        return HttpResponseForbidden()
+
+@csrf_exempt
+def kcs(request):
+    """
+    Returning a requested quiz for an specific course section
+    """
+    if request.method == 'GET':
+        section_id = request.GET["section"]
+        concepts = quiz_models.KC_Section.objects.filter(section=section_id).values("kc__name")
+        concepts_json = []
+        for kc in concepts:
+            concepts_json.append(kc["kc__name"])
+        return JSONResponse({"section":section_id, "kcs": concepts_json}, status=201)
 
     else:
         return HttpResponseForbidden()

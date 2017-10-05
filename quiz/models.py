@@ -31,18 +31,25 @@ class Quiz(models.Model):
     textualquestions = models.ManyToManyField(TextualQuestion)
 
 
-class AnswerLog(models.Model):
+class TextualAnswerLog(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(User)
-    answer = models.ForeignKey(Answer, on_delete=models.CASCADE)
-    question = models.ForeignKey(MCQuestion, on_delete=models.CASCADE)
+    session = models.CharField(max_length=100, default="test")
+    datetime = models.DateTimeField(default=timezone.now())
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
+    question = models.ForeignKey(MCQuestion, on_delete=models.CASCADE)
+    answer = models.ForeignKey(Answer, on_delete=models.CASCADE)
 
 
 class KC(models.Model):
     id = models.AutoField(primary_key=True)
-    kc = models.CharField(max_length=100, default="kc")
+    name= models.CharField(max_length=100, default="kc")
+
+
+class KC_Section(models.Model):
+    kc = models.ForeignKey(KC)
     section = models.CharField(max_length=100, default="section")
+    random = models.BooleanField(default=False)
 
 
 class KCLevel(models.Model):

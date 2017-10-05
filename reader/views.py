@@ -10,6 +10,8 @@ from reader.models import *
 from django.db import connection
 from django.db.models import Count
 
+import ast
+
 #Global variables
 user_id = 0
 group_id = 0
@@ -24,18 +26,21 @@ def load_course(request,url_group_id):
         user_id = request.user.id
         try:
             last_page_read = ReadingLog.objects.values().filter(user__id=user_id, group__id=group_id, action="page-load").latest("datetime")
-            print(connection.queries[-1]["sql"])
-            print(last_page_read)
+            #print(connection.queries[-1]["sql"])
+            #print(last_page_read)
             last_page_read["datetime"] = str(last_page_read["datetime"])
             last_page_read["zoom"] = float(last_page_read["zoom"])
         except ReadingLog.DoesNotExist:
             last_page_read = {}
-            print("No reading")
+            #print("No reading")
         course_json = Course.objects.get(id=course_id)
         num_students = int(Group.objects.annotate(num_students=Count('students'))[0].num_students)
         hierarchical_structure = course_json.course_structure
         calculate_reading_progress(hierarchical_structure)
-        return render(request, "reader.html", {"group":group_id, "course":{"id":course_json.id, "name":course_json.name}, "course_hierarchical":hierarchical_structure,"last_page_read":last_page_read})
+        final_json = {"group":group_id, "course":{"id":course_json.id, "name":course_json.name}, "course_hierarchical":hierarchical_structure,"last_page_read":last_page_read}
+        final_json_wo_unicode = json.dumps(final_json)
+        final_json_dict = ast.literal_eval(final_json_wo_unicode)
+        return render(request, "reader.html", final_json_dict)
 
 
 def calculate_reading_progress(node):
@@ -96,7 +101,9 @@ def get_number_of_group_read_pages(node):
     global user_id, group_id, num_students
     section_id = node["id"]
     tuples_student_and_page_read = ReadingLog.objects.values_list('user__id', 'page').exclude(user__id=user_id).filter(group__id=group_id, section=section_id, action="page-load").distinct().count()
-    group_read_pages = tuples_student_and_page_read / (num_students-1)
+    group_read_pages = 0
+    if(num_students>1):
+        group_read_pages = tuples_student_and_page_read / (num_students-1)
     return group_read_pages
 
 
