@@ -1,5 +1,11 @@
 import uuid
+
 from django.db import models
+from django.contrib.auth.models import User
+from reader import models as reader_models
+from django_mysql.models import JSONField, Model
+
+from django.utils import timezone
 
 
 class Annotation(models.Model):
@@ -16,15 +22,19 @@ class Annotation(models.Model):
     :param user: user id of annotation owner
     :param consumer: consumer key of backend
     """
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4)
+    id = models.AutoField(primary_key=True)
     annotator_schema_version = models.CharField(max_length=8, default="v1.0")
+    uuid = models.CharField(max_length=15, unique=True, default="0-00000")
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     text = models.TextField()
     quote = models.TextField()
     uri = models.CharField(max_length=4096, blank=True)
-    user = models.CharField(max_length=128, blank=True)
+    group = models.ForeignKey(reader_models.Group, default="default")
+    user = models.ForeignKey(User)
+    datetime = models.DateTimeField(default=timezone.now())
     consumer = models.CharField(max_length=64, blank=True)
+    permissions = JSONField()
 
     class Meta:
         ordering = ("created",)

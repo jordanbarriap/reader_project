@@ -56,7 +56,7 @@ def calculate_reading_progress(node):
         if has_pages(node):
             subsections_num_pages, subsections_read_pages, subsections_group_read_pages = calculate_subsections_reading_progress(node["children"])
             num_pages = get_number_of_pages(node) + subsections_num_pages
-            read_pages = get_number_of_read_pages(node) + subsections_read_pages
+            read_pages = list(set(get_number_of_read_pages(node) + subsections_read_pages))
             group_read_pages = get_number_of_group_read_pages(node) + subsections_group_read_pages
             set_number_of_pages(node,num_pages)
             set_number_of_read_pages(node,read_pages)
@@ -72,12 +72,12 @@ def calculate_reading_progress(node):
 
 def calculate_subsections_reading_progress(subsections):
     total_pages = 0
-    read_pages = 0
+    read_pages = []
     group_read_pages = 0
     for subsection in subsections:
         subsection_total_pages, subsection_read_pages, subsection_group_read_pages = calculate_reading_progress(subsection)
         total_pages = total_pages + subsection_total_pages
-        read_pages = read_pages + subsection_read_pages
+        read_pages = list(set(read_pages + subsection_read_pages))
         group_read_pages = group_read_pages + subsection_group_read_pages
     return total_pages, read_pages, group_read_pages
 
@@ -94,7 +94,8 @@ def get_number_of_read_pages(node):
     read_pages = set(
         ReadingLog.objects.values_list('page', flat=True).filter(user__id=user_id, group__id=group_id, section=section_id,
                                                                  action="page-load"))
-    return len(read_pages)
+    read_pages = list(read_pages)
+    return read_pages
 
 
 def get_number_of_group_read_pages(node):
@@ -118,8 +119,9 @@ def set_number_of_pages(node, num_pages):
     node["num_pages"] = num_pages
 
 
-def set_number_of_read_pages(node, num_read_pages):
-    node["read_pages"] = num_read_pages
+def set_number_of_read_pages(node, read_pages):
+    node["read_pages"] = len(read_pages)
+    node["read_pages_list"] = read_pages
 
 
 def set_number_of_group_read_pages(node, num_group_read_pages):

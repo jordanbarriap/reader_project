@@ -43,3 +43,5 @@ class ReadingLog(models.Model):
     visible_text = JSONField(blank=True)
     action = models.CharField(max_length=50, default="unknown")# e.g. page-load,zoom,scroll
     zoom = models.DecimalField(max_digits=4,decimal_places=2,default=1.0)
+    extra = JSONField(blank=True)
+

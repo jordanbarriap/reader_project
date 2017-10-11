@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'annotator',
     'reader',
     'quiz',
-    'api'
+    'api',
 ]
 
 MIDDLEWARE_CLASSES = [

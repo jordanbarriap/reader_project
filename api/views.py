@@ -9,6 +9,10 @@ from django.views.generic import TemplateView
 from rest_framework.renderers import JSONRenderer
 from rest_framework.parsers import JSONParser
 
+from django.core import serializers
+
+from django.core import serializers
+
 import annotator
 from annotator import models as annotator_models
 import quiz
@@ -120,11 +124,9 @@ def reading_log(request):
 
 
 ############################### Quiz API views ###############################
-@csrf_exempt
+""""@csrf_exempt
 def quiz(request):
-    """
-    Returning a requested quiz for an specific course section
-    """
+    #Returning a requested quiz for an specific course section
     if request.method == 'GET':
         section_id = request.GET["section"]
 
@@ -152,20 +154,102 @@ def quiz(request):
 
     else:
         return HttpResponseForbidden()
+"""
 
-def check_quiz(request):
+""""@csrf_exempt
+def quiz(request):
+    #Returning a requested quiz for an specific course section
+    if request.method == 'GET':
+        section_id = request.GET["section"]
+
+        #Query the multiple choice questions associated with the section
+        mcquestions = quiz_models.Quiz.objects.filter(course_section=section_id).values("mcquestions__id","mcquestions__statement","mcquestions__answers__id","mcquestions__answers__statement", "mcquestions__answers__order")
+        mcquestions_json = {}
+        if len(mcquestions)>0:
+            for question in mcquestions:
+                question_id = question["mcquestions__id"]
+                if question_id not in mcquestions_json:
+                    mcquestions_json[question_id]={"statement":question["mcquestions__statement"], "answers":[{"id":question["mcquestions__answers__id"], "statement":question["mcquestions__answers__statement"],  "order":question["mcquestions__answers__order"]}]}
+                else:
+                    mcquestions_json[question_id]["answers"].append({"id":question["mcquestions__answers__id"], "statement":question["mcquestions__answers__statement"],  "order":question["mcquestions__answers__order"]})
+
+        #Query the textual questions associated with the section
+        textualquestions = quiz_models.Quiz.objects.filter(course_section=section_id).values("textualquestions__id","textualquestions__statement")
+        textualquestions_json = {}
+        if len(textualquestions) > 0:
+            for question in textualquestions:
+                question_id = question["textualquestions__id"]
+                if question_id not in textualquestions_json:
+                    textualquestions_json[question_id] = {"statement": question["textualquestions__statement"]}
+
+        return JSONResponse({"mcquestions":mcquestions_json, "textualquestions":textualquestions_json}, status=201)
+
+    else:
+        return HttpResponseForbidden()
+"""
+
+@csrf_exempt
+def quiz(request):
+    #Returning a requested quiz for an specific course section
+    if request.method == 'GET':
+        section_id = request.GET["section"]
+
+        #Query the multiple choice questions associated with the section
+        #questions = quiz_models.Quiz.objects.filter(course_section=section_id).values("questions__id", "questions__statement", "questions__type","questions__choice__id")#,"questions__choice__statement")
+        quiz = quiz_models.Quiz.objects.get(course_section=section_id)
+        questions = quiz_models.Question.objects.filter(quiz__course_section=section_id)
+        choices = quiz_models.Choice.objects.filter(question__id__in=questions)
+        questions_json = {}
+        if len(questions)>0:
+            for question in questions:
+                question_id = question.id
+                questions_json[question_id]={"statement": question.statement, "type": question.type, "choices":[]}
+
+        if len(choices)>0:
+            for choice in choices:
+                question_id = choice.question_id
+                choice_json = {"id":choice.id, "statement": choice.statement}
+                questions_json[question_id]["choices"].append(choice_json)
+                print(questions_json[question_id])
+
+        return JSONResponse({"quiz":quiz.id, "name": quiz.name, "questions": questions_json}, status=201)
+
+    else:
+        return HttpResponseForbidden()
+
+@csrf_exempt
+def assess(request):
     """
     Check correctness of student answers
     """
-    if request.method == 'GET':
-        answers = request.GET["answers"]
-        mc_answers = answers["mc_answers"]
-        text_answers = answers["text_answers"]
-        for answer in text_answers:
-            print(answer)
-            #answer_log = quiz_models.AnswerLog(quiz=answer["quiz"],question=answer["id"],answer=)
+    if request.method == 'POST':
+        data = JSONParser().parse(request)
+        quiz_id = data["quiz"]
+        answers = data["answers"]
+        assessment = []
+        quiz_correctness = True
+        for answer in answers:
+            question_id = answer["question_id"]
+            answer_id = int(answer["answer"])
+            type = answer["type"]
+            if type == "multiple-choice-one-answer":
+                correct = True
+                correct_answers = quiz_models.Question_Correct_Answer.objects.filter(question_id=question_id).values("choice_id")
+                for correct_answer in correct_answers:
+                    print("Choice id")
+                    print(correct_answer["choice_id"])
+                    print("Answer id")
+                    print(answer_id)
+                    if correct_answer["choice_id"] != answer_id:
+                        print("They are not the same")
+                        correct = False
+                        quiz_correctness = False
+            assessment.append({"question_id":question_id,"type": type,"correct":correct})
+
+            #answer_log = quiz_models.AnswerLog(quiz=quiz, question=question_id)
             #answer_log.save()
-        return JSONResponse({"answers":answers}, status=201)
+
+        return JSONResponse({"quiz_correctness":quiz_correctness, "assessment": assessment}, status=201)
 
     else:
         return HttpResponseForbidden()

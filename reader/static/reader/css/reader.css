@@ -9,7 +9,7 @@ body{
     padding-top: 5px;
     position: relative;
     background-image: none !important;
-    background-color: #3E3E3E !important;
+    background-color: #525659 !important;
 }
 
 #sidebar{
@@ -56,14 +56,14 @@ body{
 
 #vis-div{
     float:left;
-    width:25%;
+    width:20%;
     height: 100%;
     position: relative;
 }
 
 #toc-div{
     float:right;
-    width:75%;
+    width:80%;
     height: 100%;
     overflow-y: auto;
     position: relative;
@@ -149,7 +149,7 @@ path.link {
   text-decoration: none;
   float:right;
   margin-right:20px;
-  width: 110px;
+  width: 120px;
   opacity: 1;
 }
 
@@ -243,5 +243,30 @@ path.link {
   filter: blur(5px);
   width: 100px;
   height: 100px;
-  background-color: #ccc;
 }
+
+.no-feedback-img{
+    content: url("../img/transparent.png");
+    width:20px;
+    height:20px;
+    display: inline-block;
+}
+
+.correct-feedback-img{
+    content: url("../img/correct.png");
+    width:20px;
+    height:20px;
+    display: inline-block;
+}
+
+.incorrect-feedback-img{
+    content: url("../img/incorrect.png");
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+}
+
+.question-statement{
+    display: inline-block;
+}
+

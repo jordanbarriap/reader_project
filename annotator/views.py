@@ -42,12 +42,17 @@ def index_create(request):
         return JSONResponse(serializer.data)
     elif request.method == "POST":
         data = JSONParser().parse(request)
+        for field, value in data.items():
+            if field == "user":
+                data[field] = int(value)
         serializer = serializers.AnnotationSerializer(data=data)
+        print(serializer)
         if serializer.is_valid():
             serializer.save()
             response = HttpResponse(status=303)
             response["Location"] = reverse("read_update_delete",
                                            kwargs={"pk": serializer.data["id"]})
+            print(response)
             return response
         else:
             return HttpResponseBadRequest(content=str(serializer.errors))

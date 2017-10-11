@@ -1,10 +1,13 @@
 {% load static %}
 <html>
 <head>
-    <link rel="stylesheet" type="text/css" href="{% static "annotorious-0.6.4/css/annotorious.css" %}" />
-    <link rel="stylesheet" type="text/css" href="http://assets.annotateit.org/annotator/v1.2.7/annotator.min.css" />
+    <!--<link rel="stylesheet" type="text/css" href="{% static "annotorious-0.6.4/css/annotorious.css" %}" />-->
+    <link rel="stylesheet" type="text/css" href="{% static "annotator/css/annotator.css" %}" />
+    <link rel="stylesheet" type="text/css" href="{% static "annotator/css/annotator.min.css" %}" />
     <link rel="stylesheet" type="text/css" href="{% static "reader/css/reader.css" %}" />
     <link rel="stylesheet" type="text/css" href="{% static "reader/css/modal.css" %}" />
+    <link rel="stylesheet" type="text/css" href="{% static "annotator/view_annotator/css/style.css" %}" />
+
 
     <link href="https://fonts.googleapis.com/css?family=Droid+Serif" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
@@ -12,13 +15,27 @@
 
     <!--<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>-->
 
-    <script type="text/javascript" src="{% static "annotorious-0.6.4/annotorious.min.js" %}"></script>
+    <!--<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+    <script src="{% static "reader/js/jquery-1.9.1.js" %}"></script>
+    <script src="{% static "annotator/js/annotator-full.min.js" %}"></script>
+
+    <script type="text/javascript" src="{% static "annotator/view_annotator/js/jquery.dateFormat.js" %}"></script>
+    <script type="text/javascript" src="{% static "annotator/view_annotator/i18n/jquery.i18n.js" %}"></script>
+    <script type="text/javascript" src="{% static "annotator/view_annotator/i18n/locale/en/annotator.js" %}"></script>
+
+    <script type="text/javascript" src="{% static "annotator/view_annotator/js/view_annotator.js" %}"></script>
+    <script type="text/javascript" src="{% static "annotator/tinymce/tinymce.min.js" %}"></script>
+    <script type="text/javascript" src="{% static "annotator/view_annotator/js/richEditor.js" %}"></script>
+    <script type="text/javascript" src="{% static "annotator/view_annotator/js/jquery.slimscroll.js" %}"></script>
+    <script type="text/javascript" src="{% static "annotator/js/short-unique-id.min.js" %}"></script>
+
+
+    <!--<script type="text/javascript" src="{% static "annotorious-0.6.4/annotorious.min.js" %}"></script>-->
     <script type="text/javascript" src="{% static "reader/js/within-viewport/withinviewport.js" %}"></script>
 
+    <!--<script src="https://hypothes.is/embed.js" async></script>-->
 
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-    <script src="http://assets.annotateit.org/annotator/v1.2.7/annotator-full.min.js"></script>
-    <!--<script type="text/javascript" src="{% static 'js/annotator.min.js' %}"></script>-->
+
 
     <!-- Latest compiled and minified CSS -->
     <!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">-->
@@ -44,7 +61,7 @@
         <button class="previous-btn">❮ Previous</button>
         <span class="title-current-section"></span>
         <button class="next-btn">Next ❯</button>
-        <!--<button class="quiz-btn" disabled>Ask for quiz ✎</button>-->
+        <button class="quiz-btn" disabled>Go to quiz ✎</button>
 
     </div>
     <div id="reader-canvas">
@@ -60,19 +77,25 @@
   <!-- Modal content -->
     <div class="modal-content">
       <div class="modal-header">
-        <!--<span class="close">&times;</span>-->
-        <h2>Section Quiz</h2>
+        <span class="close">&times;</span>
+        <h2 class="quiz-title">Quiz time!</h2>
       </div>
       <div class="modal-body">
-
+          <p class="quiz-instructions"> Please ask the facilitator for the quiz corresponding to the section(s) that you just have finished reading.
+              </br>
+              </br>
+              </br>Once you fill it completely, please return it to the facilitator and then, press the "Submit" button</p>
       </div>
       <div class="modal-footer">
-        <button class="submit-btn btn">Submit</button>
+        <button class="submit-btn">Submit</button>
       </div>
     </div>
 </div>
 
 <script type="text/javascript">
+
+    var uid = new ShortUniqueId();
+
     var last_page_read = {};
     var resource_id;
     var course_hierarchical_structure = {};
@@ -80,12 +103,23 @@
     var quiz_data= {};
     var modal;
 
+    var progressVisUpdater;
+
+    //var section_quizzes = {"ir-4-1-1-1":false,"ir-4-1-1-3":false,"ir-4-1-2-3":false,"ir-4-1-4":false};
+
     var toc_color = d3.scale.linear()
         .domain([1,5])
         .range(["#F99B39","#FAD594"]);
 
+    var color = d3.scale.linear()
+        .domain([0.0, 1.0])
+        //.range(["#ECEEF5", "#011568"]);
+        .range(["#E0E0E0", "#339933"]);
+
 
     jQuery(function ($) {
+        $.i18n.load(i18n_dict);
+
         var t = '';
 
         var csrftoken = getCookie('csrftoken');
@@ -100,9 +134,6 @@
         });
 
         loadHtml();
-        //$("#page-container").annotator();
-        //$('#page-container').annotator()
-                            //.annotator('addPlugin', 'Tags');
 
         $('.previous-btn').click( function(e) {
             e.preventDefault();
@@ -122,6 +153,12 @@
             return false;
         });
 
+        $('.submit-btn').click( function(e) {
+            e.preventDefault();
+            submitQuiz();
+            return false;
+        });
+
         // Get the modal
         modal = document.getElementById('myModal');
 
@@ -129,16 +166,16 @@
         var span = document.getElementsByClassName("close")[0];
 
         // When the user clicks on <span> (x), close the modal
-        /*span.onclick = function() {
-            modal.style.display = "none";
-        }*/
+        span.onclick = function() {
+            closeQuizWindow();
+        }
 
         // When the user clicks anywhere outside of the modal, close it
-        /*window.onclick = function(event) {
+        window.onclick = function(event) {
             if (event.target == modal) {
-                modal.style.display = "none";
+                closeQuizWindow();
             }
-        }*/
+        }
 
         function gText(e) {
             t = window.getSelection().toString();
@@ -161,7 +198,7 @@
     });
 
 // extension:
-$.fn.scrollEnd = function(callback, timeout) {
+/*$.fn.scrollEnd = function(callback, timeout) {
   $(this).scroll(function(){
     var $this = $(this);
     if ($this.data('scrollTimeout')) {
@@ -170,6 +207,16 @@ $.fn.scrollEnd = function(callback, timeout) {
     $this.data('scrollTimeout', setTimeout(callback,timeout));
   });
 };
+
+$(window).bind('scrollStart', function(){
+    scrolling = true;
+    console.log('scrollStart');
+});
+
+$(window).bind('scrollEnd', function(){
+    scrolling = false;
+    console.log('scrollEnd');
+});*/
 
 
 function loadHtml() {
@@ -191,7 +238,7 @@ function loadHtml() {
         console.log(last_page_read);
     }
 
-    initProgressVis(course_hierarchical_structure);
+    progressVisUpdater = initProgressVis(course_hierarchical_structure);
 
     initToc(course_hierarchical_structure);
 
@@ -201,181 +248,18 @@ function loadHtml() {
     console.log($(".t")[0]);
     //initWordCloud(text_html);
 
-    var content = $('#page-container').annotator();
-    content.annotator('addPlugin', 'Store', {
-      // The endpoint of the store on your server.
-      prefix: '/annotator',
 
-      // Attach the uri of the current page to all annotations to allow search.
-      annotationData: {
-        'uri': window.location.href
-      },
-
-      // This will perform a "search" action when the plugin loads. Will
-      // request the last 20 annotations for the current url.
-      // eg. /store/endpoint/search?limit=20&uri=http://this/document/only
-      loadFromSearch: {
-        //'limit': 20,
-        'uri': window.location.href
-      },
-      urls: {
-        // These are the default URLs.
-        create:  '/annotations',
-        update:  '/annotations/:id',
-        destroy: '/annotations/:id',
-        search:  '/search'
-      }
-    });
     //});
 
 }
 
-function loadResource(section_id,section_name,resource_id,page_num){
-     var current_section = getSectionById(section_id);
-     console.log(current_section);
-     var epage = parseInt(current_section["epage"]);
-     var spage = parseInt(current_section["spage"]);
-     console.log("epage: "+epage+" spage: "+spage+" page: "+page_num);
 
-     //$("#toc-section-"+section_id).addClass("active");
-    $(".previous-btn").prop("disabled",false);
-    $(".next-btn").prop("disabled",false);
+function initProgressVis(root){
 
-    var last_section_read = $.grep(course_linear_structure, function(d){ return d.id == section_id; });
-        last_section_read[0]["page"]=parseInt(page_num);
-        last_page_read = last_section_read[0];
-
-     if(page_num == spage){
-        //$.get( "http://{{ request.META.HTTP_HOST }}/reader_project/api/kcs",
-        /*$.get( "http://{{ request.META.HTTP_HOST }}/api/kcs",
-                 {"user": {{ request.user.id }},
-                 "group": "{{ group }}",
-                 "sections": last_page_read["id"]},
-                function(data){
-                    console.log(data);
-                });*/
-        console.log("first page loaded");
-        var index_last_page_read = course_linear_structure.map(function(d) { return d.id; }).indexOf(last_page_read["id"]);
-        console.log(index_last_page_read);
-        if (index_last_page_read==0){
-            $(".previous-btn").prop("disabled",true);
-        }
-     }
-
-     if(page_num == epage){
-         //Load quiz, if there is any quiz related to the section
-        //loadQuiz();
-        //$(".next-btn").text("Go to quiz ✎");
-        //$(".next-btn").removeClass("next-btn").addClass("quiz-btn");
-        //$(".quiz-btn").unbind( "click" );
-        //$(".quiz-btn").click(openQuizWindow);
-        //$(".submit-btn").click(submitQuiz);
-         console.log("last page loaded");
-        var index_last_page_read = course_linear_structure.map(function(d) { return d.id; }).indexOf(last_page_read["id"]);
-        console.log(index_last_page_read);
-        if (index_last_page_read==course_linear_structure.length-1){
-            $(".next-btn").prop("disabled",true);
-        }
-
-     }
-
-     highlightTocSection(section_id);
-
-     var resource_path = "resources/"+resource_id+"/"+resource_id+"-"+page_num+".html";
-
-     $("#reader-canvas").load("{% static "/" %}"+resource_path,function() {
-
-         //Set section title at the top of the reader
-        $(".title-current-section").html(section_name);
-
-        //initWordCloud(text_html);
-
-        /*var content = $('#page-container').annotator();
-        content.annotator('addPlugin', 'Store', {
-          // The endpoint of the store on your server.
-          prefix: '/annotator',
-
-          // Attach the uri of the current page to all annotations to allow search.
-          annotationData: {
-            'uri': window.location.href
-          },
-
-          // This will perform a "search" action when the plugin loads. Will
-          // request the last 20 annotations for the current url.
-          // eg. /store/endpoint/search?limit=20&uri=http://this/document/only
-          loadFromSearch: {
-            //'limit': 20,
-            'uri': window.location.href
-          },
-          urls: {
-            // These are the default URLs.
-            create:  '/annotations',
-            update:  '/annotations/:id',
-            destroy: '/annotations/:id',
-            search:  '/search'
-          }
-         });*/
-         //Get all the text html containers
-            var visible_text_elements = [];
-            var visible_text = "";
-            $("#page-container").find(".t").each(function(){
-                if(isElementInViewport($(this))){
-                    visible_text_elements.push($(this).attr("class"));
-                    visible_text = visible_text + " " + $(this).text();
-                }
-            });
-         console.log(new Date().toIsoString());
-         //$.post( "http://{{ request.META.HTTP_HOST }}/reader_project/api/reader", JSON.stringify(
-         $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
-             {"user": {{ request.user.id }},
-             "session": "{{ request.session.session_key }}",
-             "group": "{{ group }}",
-             "section": section_id,
-             "name": section_name,
-             "resource": resource_id,
-             "page": page_num,
-             "action":"page-load",
-             //"datetime": new Date().toISOString(),
-             "datetime": new Date().toIsoString(),
-             "visible_text": visible_text_elements}) );
-
-         //If user scrolls the page
-        $("#page-container").scrollEnd(function(){
-            //Log scroll event by using the reader api
-
-            //Get all the text html containers
-            var visible_text_elements = [];
-            var visible_text = "";
-            $("#page-container").find(".t").each(function(){
-                if(isElementInViewport($(this))){
-                    visible_text_elements.push($(this).attr("class"));
-                    visible_text = visible_text + " " + $(this).text();
-                }
-            });
-            console.log($("#page-container").scrollTop());
-            //$.post( "http://{{ request.META.HTTP_HOST }}/reader_project/api/reader", JSON.stringify(
-            $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
-             {"user": {{ request.user.id }},
-             "session": "{{request.session.session_key}}",
-             "group": "{{ group }}",
-             "section": section_id,
-             "name": section_name,
-             "resource": resource_id,
-             "page": page_num,
-             "action":"page-scroll",
-             "datetime": new Date().toISOString(),
-             "visible_text": visible_text_elements}) );
-        }, 500);
-    });
-}
-
-function initProgressVis(course_structure){
-    var root = course_structure;
-
-    var w = $("#vis-div").width()/2;
+    var w = $("#vis-div").width();
     var h = $("#vis-div").height();
 
-    var svg_size = w-2;
+    var svg_size = w;//Change for making svg and svg-comp diferent
 
     var partition = d3.layout.partition()
         .sort(null)
@@ -384,10 +268,6 @@ function initProgressVis(course_structure){
         })
         .value(function(d) {return Math.log(d.epage-d.spage+1); });
 
-    var color = d3.scale.linear()
-        .domain([0.0, 1.0])
-        //.range(["#ECEEF5", "#011568"]);
-        .range(["#E0E0E0", "#339933"]);
 
     var x = d3.scale.linear()
         .range([0, w]);
@@ -396,11 +276,14 @@ function initProgressVis(course_structure){
             .range([0, h]);
             //range([0, w]);
 
-    /*var x_comp = d3.scale.linear()
-        .range([w, 0]);*/
+    var x_comp = d3.scale.linear()
+        .range([w, 0]);
 
     var separation = 1.5;
-      var y_separation = 1;
+    var y_separation = 1;
+
+    updateProgressVis(course_hierarchical_structure);
+    function updateProgressVis(root) {
 
     /*var svg_comp = d3.select("#vis-div").append("svg")
         .attr("id","svg-vis-comp")
@@ -456,75 +339,78 @@ function initProgressVis(course_structure){
           .on("dblclick", partitionTableDoubleClick)
           .on("mouseout",partitionTableMouseout);*/
 
-    var svg = d3.select("#vis-div").append("svg")
-        .attr("id","svg-vis")
-        .attr("width", svg_size)
-        .attr("height", h)
+        var svg_ind = d3.select("#vis-div").append("svg")
+            .attr("id", "svg-vis")
+            .attr("width", svg_size)
+            .attr("height", h)
             .append("g")
-            .attr("id","g_progress_vis")
-            .attr("transform","translate(-10,0)");//TODO: parametrize horizontal translation
+            .attr("id", "g_progress_vis")
+            .attr("transform", "translate(-10,0)");//TODO: parametrize horizontal translation
 
-     var rect = svg.selectAll("rect");
+        var rect = svg_ind.selectAll("rect");
 
-     rect = rect
-          .data(partition(root))
-        .enter().append("g")
-            .attr("class", function (d) {
-                    classname = "partition_depth_" + d.depth;
-
-                    //if (d.depth > 0){
-                        classname += " partition_docno_" + d.docno;
-                    //}
-
-                    return classname;
-                })
-            .append("rect")
-          .attr("x", function(d) {
-                return x(d.y)+d.depth*separation;
+        rect = rect
+            .data(partition(root), function (d) {
+                return d.id;
             })
-          .attr("y", function(d) { return y(d.x)+y_separation; })
-          .attr("width", function(d) { return x(d.dy); })
-          .attr("height", function(d) { return y(d.dx); })
-          .attr("fill", function (d) {
-                    var visited_pages = d.read_pages;
-                    var total_section_pages = d.num_pages;
-                    var proportion_visited_pages = visited_pages/total_section_pages;
-                    return color(proportion_visited_pages);
-                })
-          .attr("class", function (d) {
-                    classname = "partition_depth_" + d.depth;
+            .enter().append("g")
+            .attr("class", function (d) {
+                classname = "partition_depth_" + d.depth;
 
-                    //if (d.depth > 0){
-                        classname += " partition_docno_" + d.docno;
-                    //}
+                return classname;
+            })
+            .append("rect")
+            .attr("x", function (d) {
+                return x(d.y) + d.depth * separation;
+            })
+            .attr("y", function (d) {
+                return y(d.x) + y_separation;
+            })
+            .attr("width", function (d) {
+                return x(d.dy);
+            })
+            .attr("height", function (d) {
+                return y(d.dx);
+            })
+            .attr("fill", function (d) {
+                var visited_pages = d.read_pages;
+                var total_section_pages = d.num_pages;
+                var proportion_visited_pages = visited_pages / total_section_pages;
+                return color(proportion_visited_pages);
+            })
+            .attr("class", function (d) {
+                classname = "partition_depth_" + d.depth;
 
-                    return classname;
-                })
-          .attr("display", function(d) { return d.depth && d.depth<=4 ? null : "none"; })//d.depth && d.depth<=3 ? null : "none"; })
-          .attr("stroke-width","1px")
-          .attr("stroke","white")
-          .attr("opacity",1)
-          .on("click", visSectionClick)
-          .on("mouseover",visSectionMouseover)
-          .on("mouseout",visSectionMouseout);
-          /*.on("dblclick", partitionTableDoubleClick)
+                return classname;
+            })
+            .attr("id", function(d){return "rect-"+d.id;})
+            .attr("display", function (d) {
+                return d.depth && d.depth <= 4 ? null : "none";
+            })//d.depth && d.depth<=3 ? null : "none"; })
+            .attr("stroke-width", "1px")
+            .attr("stroke", "white")
+            .attr("opacity", 1)
+            .on("click", visSectionClick)
+            .on("mouseover", visSectionMouseover)
+            .on("mouseout", visSectionMouseout);
+        /*.on("dblclick", partitionTableDoubleClick)
           .on("mouseover",partitionTableMouseover)
           .on("mouseout",partitionTableMouseout);*/
 
         //Container for the gradients
-        var defs = svg.append("defs");
+        var defs = svg_ind.append("defs");
 
         //Filter for the outside glow
         var filter = defs.append("filter")
-            .attr("id","glow");
+            .attr("id", "glow");
         filter.append("feGaussianBlur")
-            .attr("stdDeviation","4")
-            .attr("result","coloredBlur");
+            .attr("stdDeviation", "4")
+            .attr("result", "coloredBlur");
         var feMerge = filter.append("feMerge");
         feMerge.append("feMergeNode")
-            .attr("in","coloredBlur");
+            .attr("in", "coloredBlur");
         feMerge.append("feMergeNode")
-            .attr("in","SourceGraphic");
+            .attr("in", "SourceGraphic");
 
         /*svg.on("mousemove", function() {
             fisheye.focus(d3.mouse(this));
@@ -536,20 +422,20 @@ function initProgressVis(course_structure){
 
         subsections.append("circle")
             .attr("cx", function (d,i) {*/
-                /*if (i%2){
+        /*if (i%2){
                     return x(d.y)+x(d.dy)+40;
                 }else{
                     return x(d.y)+40;
                 }*/
-                //return (x(d.y)+x(d.dy)/2+(separation*2)-1.5);
-                /*return (x(d.y)+x(d.dy)/2+(separation*2)-1.5);
+        //return (x(d.y)+x(d.dy)/2+(separation*2)-1.5);
+        /*return (x(d.y)+x(d.dy)/2+(separation*2)-1.5);
             })
             .attr("cy", function (d,i) { return y(d.x)+(y(d.dx)/2); })
             .attr("r", 2)
             .style("fill", "#c5c5c5")*/
-            //.attr("stroke-width","0.5px")
-            //.style("stroke", "black")
-            /*.style("z-index","1000");*/
+        //.attr("stroke-width","0.5px")
+        //.style("stroke", "black")
+        /*.style("z-index","1000");*/
 
         /*subsections.append("text")
                 .attr("dx", function(d){return x(d.y)+x(d.dy)/2+(separation*2)-3.5;})
@@ -562,21 +448,374 @@ function initProgressVis(course_structure){
 
         subsections3.append("circle")
             .attr("cx", function (d,i) {*/
-                /*if (i%2){
+        /*if (i%2){
                     return x(d.y)+x(d.dy)+40;
                 }else{
                     return x(d.y)+40;
                 }*/
-                //return x(d.y)+x(d.dy)/2+(separation*4)-1.5;
-                /*return (Math.random()*30)+(1.7*x(d.y))+(separation*4)-1.5;
+        //return x(d.y)+x(d.dy)/2+(separation*4)-1.5;
+        /*return (Math.random()*30)+(1.7*x(d.y))+(separation*4)-1.5;
             })
             .attr("cy", function (d,i) { return y(d.x)+(y(d.dx)/2); })
             .attr("r", 2)
             .style("fill", "#c5c5c5")*/
-            //.attr("stroke-width","0.5px")
-            //.style("stroke", "black")
-            /*.style("z-index","1000");*/
+        //.attr("stroke-width","0.5px")
+        //.style("stroke", "black")
+        /*.style("z-index","1000");*/
+    }
+
 }
+
+function loadResource(section_id,section_name,resource_id,page_num){
+     var current_section = getSectionById(section_id);
+     console.log(current_section);
+
+     hierarchicalCourseSectionUpdate(course_hierarchical_structure.children,section_id,parseInt(page_num));
+
+
+     var epage = parseInt(current_section["epage"]);
+     var spage = parseInt(current_section["spage"]);
+     console.log("epage: "+epage+" spage: "+spage+" page: "+page_num);
+
+     //$("#toc-section-"+section_id).addClass("active");
+    $(".previous-btn").prop("disabled",false);
+    $(".next-btn").prop("disabled",false);
+    $(".quiz-btn").prop("disabled",true);
+
+    var last_section_read = $.grep(course_linear_structure, function(d){ return d.id == section_id; });
+        last_section_read[0]["page"]=parseInt(page_num);
+        last_page_read = last_section_read[0];
+
+     if(page_num == spage){
+        //$.get( "http://{{ request.META.HTTP_HOST }}/reader_project/api/kcs",
+        /*$.get( "http://{{ request.META.HTTP_HOST }}/api/kcs",
+                 {"user": {{ request.user.id }},
+                 "group": "{{ group }}",
+                 "sections": last_page_read["id"]},
+                function(data){
+                    console.log(data);
+                });*/
+        console.log("First page loaded");
+        var index_last_page_read = course_linear_structure.map(function(d) { return d.id; }).indexOf(last_page_read["id"]);
+        console.log(index_last_page_read);
+        if (index_last_page_read==0){
+            $(".previous-btn").prop("disabled",true);
+        }
+     }
+     //var section_quizzes_ids = Object.keys(section_quizzes);
+     if(page_num == epage){
+         //Load quiz, if there is any quiz related to the section
+        loadQuiz();
+        //$(".next-btn").text("Go to quiz ✎");
+        //$(".next-btn").removeClass("next-btn").addClass("quiz-btn");
+        //$(".quiz-btn").unbind( "click" );
+        //$(".quiz-btn").click(openQuizWindow);
+        //$(".submit-btn").click(submitQuiz);
+         // if(section_quizzes_ids.indexOf(section_id)>-1 && !section_quizzes[section_id]){
+            $(".next-btn").prop("disabled",true);
+            $(".quiz-btn").prop("disabled",false);
+         //}
+        var index_last_page_read = course_linear_structure.map(function(d) { return d.id; }).indexOf(last_page_read["id"]);
+        if (index_last_page_read==course_linear_structure.length-1){
+            $(".next-btn").prop("disabled",true);
+        }
+
+     }
+
+     highlightTocSection(section_id);
+
+     var resource_path = "resources/"+resource_id+"/"+resource_id+"-"+page_num+".html";
+
+     $("#reader-canvas").load("{% static "/" %}"+resource_path,function() {
+
+         //Set section title at the top of the reader
+        $(".title-current-section").html(section_name);
+
+        //initWordCloud(text_html);
+        var annotator = $('#page-container').annotator().annotator().data('annotator');
+        var propietary = {{ request.user.id }};
+        annotator.addPlugin('Permissions', {
+            user: propietary,
+            permissions: {
+                'read': [propietary],
+                'update': [propietary],
+                'delete': [propietary],
+                'admin': [propietary]
+         },
+         showViewPermissionsCheckbox: true,
+         showEditPermissionsCheckbox: false
+        });
+        $('#page-container').annotator().annotator('addPlugin', 'RichEditor');
+
+
+
+        $('#page-container').annotator('addPlugin', 'Store', {
+          // The endpoint of the store on your server.
+          prefix: "/annotator",
+
+          // Attach the uri of the current page to all annotations to allow search.
+          annotationData: {
+            "uuid": {{ request.user.id }}+"-"+uid.randomUUID(6),
+            "uri": resource_id+"-"+page_num+".html",
+            "user": {{ request.user.id }},
+            "session": "{{ request.session.session_key }}",
+            "group": "{{ group }}"
+          },
+          loadFromSearch: {
+            //'limit': 20,
+            "uri": resource_id+"-"+page_num+".html",
+            "group": "{{ group }}"
+          },
+          urls: {
+            // These are the default URLs.
+            create:  '/annotations',
+            update:  '/annotations/:id',
+            destroy: '/annotations/:id',
+            search:  '/search'
+          }
+         });
+
+
+        $('#page-container').annotator().annotator('addPlugin', 'AnnotatorViewer');
+
+
+
+
+
+
+
+        //var content = $('#page-container').annotator();
+        /*content.annotator("addPlugin", "Store", {
+          // The endpoint of the store on your server.
+          prefix: "/annotator",
+
+          // Attach the uri of the current page to all annotations to allow search.
+          annotationData: {
+            "uri": resource_id+"-"+page_num+".html",
+            "user": {{ request.user.id }},
+            "session": "{{ request.session.session_key }}",
+            "group": "{{ group }}"
+          },
+          loadFromSearch: {
+            //'limit': 20,
+            "uri": resource_id+"-"+page_num+".html",
+            "group": "{{ group }}"
+          },
+          urls: {
+            // These are the default URLs.
+            create:  '/annotations',
+            update:  '/annotations/:id',
+            destroy: '/annotations/:id',
+            search:  '/search'
+          }
+         });
+
+        var propietary = {{ request.user.id }};
+        content.annotator("addPlugin","Permissions", {
+                        user: propietary,
+                        permissions: {
+                            'read': [propietary],
+                            'update': [propietary],
+                            'delete': [propietary],
+                            'admin': [propietary]
+                     },
+                     showViewPermissionsCheckbox: false,
+                     showEditPermissionsCheckbox: false
+                    });
+        content.annotator("addPlugin", "RichEditor");
+        content.annotator("addPlugin", "AnnotatorViewer");*/
+
+         //Get all the text html containers
+        var visible_text_elements = [];
+        var visible_text = "";
+        $("#page-container").find(".t").each(function(){
+            if(isElementInViewport($(this))){
+                visible_text_elements.push($(this).attr("class"));
+                visible_text = visible_text + " " + $(this).text();
+            }
+        });
+         console.log(new Date().toIsoString());
+
+         var reader_height = document.getElementById("page-container").scrollHeight;
+            console.log(reader_height);
+            var top = $("#page-container").scrollTop() - $("#page-container").offset().top;
+		    var bottom = top + window.innerHeight;
+
+		    top = Math.min(reader_height, Math.max(0, top));
+		    bottom = Math.min(reader_height, Math.max(0, bottom));
+
+		    // top and bottom are between 0 and 100
+		    top = (100 * top / reader_height).toFixed(4);
+		    bottom = (100 * bottom / reader_height).toFixed(4);
+
+		    console.log("top: "+top+"bottom: "+bottom);
+            var viewport_positions={"top":top,"bottom":bottom};
+
+         //$.post( "http://{{ request.META.HTTP_HOST }}/reader_project/api/reader", JSON.stringify(
+         $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
+             {"user": {{ request.user.id }},
+             "session": "{{ request.session.session_key }}",
+             "group": "{{ group }}",
+             "section": section_id,
+             "name": section_name,
+             "resource": resource_id,
+             "page": page_num,
+             "action":"page-load",
+             //"datetime": new Date().toISOString(),
+             "datetime": new Date().toIsoString(),
+             "visible_text": visible_text_elements,
+             "extra": viewport_positions}));
+
+         //If user scrolls the page
+        var t, l = (new Date()).getTime(), scrolling = false;
+
+        $("#page-container").scroll(function(){
+            var now = (new Date()).getTime();
+
+            if(now - l > 400 && !scrolling ){
+                $(this).trigger('scrollStart');
+                l = now;
+            }
+
+            clearTimeout(t);
+            t = setTimeout(function(){
+                if (scrolling)
+                    $("#page-container").trigger('scrollEnd');
+            }, 300);
+        });
+
+         $("#page-container").bind('scrollStart', function(){
+            scrolling = true;
+            console.log('scrollStart');
+            //Log scroll event by using the reader api
+
+            //Get all the text html containers
+            var visible_text_elements = [];
+            var visible_text = "";
+            $("#page-container").find(".t").each(function(){
+                if(isElementInViewport($(this))){
+                    visible_text_elements.push($(this).attr("class"));
+                    visible_text = visible_text + " " + $(this).text();
+                }
+            });
+
+		    var reader_height = document.getElementById("page-container").scrollHeight;
+            console.log(reader_height);
+            var top = $("#page-container").scrollTop() - $("#page-container").offset().top;
+		    var bottom = top + window.innerHeight;
+
+		    top = Math.min(reader_height, Math.max(0, top));
+		    bottom = Math.min(reader_height, Math.max(0, bottom));
+
+		    // top and bottom are between 0 and 100
+		    top = (100 * top / reader_height).toFixed(2);
+		    bottom = (100 * bottom / reader_height).toFixed(2);
+
+		    console.log("top: "+top+"bottom: "+bottom);
+            var viewport_positions={"top":top,"bottom":bottom};
+            //$.post( "http://{{ request.META.HTTP_HOST }}/reader_project/api/reader", JSON.stringify(
+            $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
+             {"user": {{ request.user.id }},
+             "session": "{{request.session.session_key}}",
+             "group": "{{ group }}",
+             "section": section_id,
+             "name": section_name,
+             "resource": resource_id,
+             "page": page_num,
+             "action":"page-scroll-start",
+             "datetime": new Date().toISOString(),
+             "visible_text": visible_text_elements,
+             "extra":viewport_positions}) );
+        });
+
+        $("#page-container").bind('scrollEnd', function(){
+            scrolling = false;
+            console.log('scrollEnd');
+            //Log scroll event by using the reader api
+
+            //Get all the text html containers
+            var visible_text_elements = [];
+            var visible_text = "";
+            $("#page-container").find(".t").each(function(){
+                if(isElementInViewport($(this))){
+                    visible_text_elements.push($(this).attr("class"));
+                    visible_text = visible_text + " " + $(this).text();
+                }
+            });
+
+		    var reader_height = document.getElementById("page-container").scrollHeight;
+            console.log(reader_height);
+            var top = $("#page-container").scrollTop() - $("#page-container").offset().top;
+		    var bottom = top + window.innerHeight;
+
+		    top = Math.min(reader_height, Math.max(0, top));
+		    bottom = Math.min(reader_height, Math.max(0, bottom));
+
+		    // top and bottom are between 0 and 100
+		    top = (100 * top / reader_height).toFixed(4);
+		    bottom = (100 * bottom / reader_height).toFixed(4);
+
+		    console.log("top: "+top+"bottom: "+bottom);
+            var viewport_positions={"top":top,"bottom":bottom};
+            //$.post( "http://{{ request.META.HTTP_HOST }}/reader_project/api/reader", JSON.stringify(
+            $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
+             {"user": {{ request.user.id }},
+             "session": "{{request.session.session_key}}",
+             "group": "{{ group }}",
+             "section": section_id,
+             "name": section_name,
+             "resource": resource_id,
+             "page": page_num,
+             "action":"page-scroll-end",
+             "datetime": new Date().toISOString(),
+             "visible_text": visible_text_elements,
+             "extra":viewport_positions}) );
+
+        })
+        /*$("#page-container").scrollEnd(function(){
+            //Log scroll event by using the reader api
+
+            //Get all the text html containers
+            var visible_text_elements = [];
+            var visible_text = "";
+            $("#page-container").find(".t").each(function(){
+                if(isElementInViewport($(this))){
+                    visible_text_elements.push($(this).attr("class"));
+                    visible_text = visible_text + " " + $(this).text();
+                }
+            });
+
+		    var reader_height = document.getElementById("page-container").scrollHeight;
+            console.log(reader_height);
+            var top = $("#page-container").scrollTop() - $("#page-container").offset().top;
+		    var bottom = top + window.innerHeight;
+
+		    top = Math.min(reader_height, Math.max(0, top));
+		    bottom = Math.min(reader_height, Math.max(0, bottom));
+
+		    // top and bottom are between 0 and 100
+		    top = (100 * top / reader_height).toFixed(4);
+		    bottom = (100 * bottom / reader_height).toFixed(4);
+
+		    console.log("top: "+top+"bottom: "+bottom);
+            var viewport_positions={"top":top,"bottom":bottom};
+            //$.post( "http://{{ request.META.HTTP_HOST }}/reader_project/api/reader", JSON.stringify(
+            $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
+             {"user": {{ request.user.id }},
+             "session": "{{request.session.session_key}}",
+             "group": "{{ group }}",
+             "section": section_id,
+             "name": section_name,
+             "resource": resource_id,
+             "page": page_num,
+             "action":"page-scroll",
+             "datetime": new Date().toISOString(),
+             "visible_text": visible_text_elements,
+             "extra":viewport_positions}) );
+        }, 100);*/
+    });
+}
+
 function initWordCloud(text_string){
         var common = "poop,i,me,my,myself,we,us,our,ours,ourselves,you,your,yours,yourself,yourselves,he,him,his,himself,she,her,hers,herself,it,its,itself,they,them,their,theirs,themselves,what,which,who,whom,whose,this,that,these,those,am,is,are,was,were,be,been,being,have,has,had,having,do,does,did,doing,will,would,should,can,could,ought,i'm,you're,he's,she's,it's,we're,they're,i've,you've,we've,they've,i'd,you'd,he'd,she'd,we'd,they'd,i'll,you'll,he'll,she'll,we'll,they'll,isn't,aren't,wasn't,weren't,hasn't,haven't,hadn't,doesn't,don't,didn't,won't,wouldn't,shan't,shouldn't,can't,cannot,couldn't,mustn't,let's,that's,who's,what's,here's,there's,when's,where's,why's,how's,a,an,the,and,but,if,or,because,as,until,while,of,at,by,for,with,about,against,between,into,through,during,before,after,above,below,to,from,up,upon,down,in,out,on,off,over,under,again,further,then,once,here,there,when,where,why,how,all,any,both,each,few,more,most,other,some,such,no,nor,not,only,own,same,so,than,too,very,say,says,said,shall";
 
@@ -699,7 +938,7 @@ function visSectionClick(d){
 function initToc(course_structure){
     var vis_element = d3.select('#g_progress_vis').node();
     //var margin_left = vis_element.getBoundingClientRect().width;
-    var margin = {top: 10, right: 0, bottom: 5, left: 0};
+    var margin = {top: 10, right: 0, bottom: 5, left: 20};
 
     var i = 0;
 
@@ -708,7 +947,7 @@ function initToc(course_structure){
 
     var diagonal = d3.svg.diagonal()
         .projection(function(d) { return [d.y, d.x]; });
-    var width = $("#toc-div").width();
+    var width = $("#toc-div").width() - margin.left;
     var svg = d3.select("#toc-div").append("svg")
         .attr("id","svg-toc")
         .attr("width", width)// + margin.left + margin.right)
@@ -943,8 +1182,6 @@ function initToc(course_structure){
 
         // Then highlight only those that are an ancestor of the current segment.
         var sequenceArray = getAncestors(d);
-        console.log("ancestors");
-        console.log(sequenceArray);
 
         var highlighted_sections = d3.selectAll("rect")
             .filter(function(node) {
@@ -981,63 +1218,87 @@ function initToc(course_structure){
     }
 
     function openQuizWindow(){
-        //modal.style.display = "block";
+        modal.style.display = "block";
+        $("#left-div").addClass("blurred");
         $("#page-container").addClass("blurred");
+
+        var section_id = last_page_read["id"];
+        var section_name = last_page_read["name"];
+        var resource_id = last_page_read["resourceid"];
+        var page_num = last_page_read["page"];
+
+        $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
+             {"user": {{ request.user.id }},
+             "session": "{{ request.session.session_key }}",
+             "group": "{{ group }}",
+             "section": section_id,
+             "name": section_name,
+             "resource": resource_id,
+             "page": page_num,
+             "action":"quiz-load",
+             //"datetime": new Date().toISOString(),
+             "datetime": new Date().toIsoString(),
+             "visible_text": []}) );
+    }
+
+    function closeQuizWindow(){
+        modal.style.display = "none";
+        $("#left-div").removeClass("blurred");
+        $("#page-container").removeClass("blurred");
     }
 
     function loadQuiz(){
-        var section_quizzes = ["ir-4-1-1-1","ir-4-1-1-3","4-1-2-3","4-1-4"];
+        /*var section_quizzes = ["ir-4-1-1-1","ir-4-1-1-3","4-1-2-3","4-1-4"];
         if(section_quizzes.includes(last_page_read["id"])){
             alert("there is a quiz");
-        }
+        }*/
         //$.get( "http://{{ request.META.HTTP_HOST }}/reader_project/api/quiz",
-        /*$.get( "http://{{ request.META.HTTP_HOST }}/api/quiz",
+        $.get( "http://{{ request.META.HTTP_HOST }}/api/quiz",
              {"user": {{ request.user.id }},
              "group": "{{ group }}",
              "section": last_page_read["id"]},
             function(data){
-                var mcquestions = data["mcquestions"];
-                var mcquestion_ids = Object.keys(mcquestions);
+                quiz_data = data;
+                $(".quiz-title").text(data["name"]);
+                var questions = data["questions"];
+                var question_ids = Object.keys(questions);
 
-                var textualquestions = data["textualquestions"];
-                var textualquestion_ids = Object.keys(textualquestions);
-
-                if(mcquestion_ids.length>0 || textualquestion_ids.length>0){
+                if(question_ids.length>0){
                     //Insert questions in the quiz
                     $(".modal-body").empty();
                     var question_number = 0;
-                    for(var i=0;i<mcquestion_ids.length;i++) {
-                        var statement = mcquestions[mcquestion_ids[i]]["statement"];
+                    for(var i=0;i<question_ids.length;i++) {
+                        var statement = questions[question_ids[i]]["statement"];
+                        var type = questions[question_ids[i]]["type"];
+                        console.log(type);
                         question_number = question_number + 1;
-                        $(".modal-body").append("<p>" + question_number + ".   " + statement + "</p>");
-                        var mcquestion_id = mcquestion_ids[i];
-                        $(".modal-body").append("<ul id='mcq" + mcquestion_id + "'></ul>");
-                        var answers = mcquestions[mcquestion_id]["answers"];
-                        for (var j = 0; j < answers.length; j++) {
-                            var answer_id = answers[j]["id"]
-                            var answer_statement = answers[j]["statement"];
-                            var order = answers[j]["order"];
-                            $("#mcq" + mcquestion_ids[i]).append("<input class='mcquestion' type='radio' name='mcq" + mcquestion_id + "' value=" + answer_id + ">" + answer_statement + "<br>");
+                        if(type=="multiple-choice-one-answer");
+                            var question_id = question_ids[i];
+                            $(".modal-body").append("<img class='no-feedback-img' id='q"+question_id+"-feedback-img'>");
+                            $(".modal-body").append("<p class 'question-statement' id='q"+question_id+"-statement'>" + question_number + ".   " + statement + "</p>");
+                            $(".modal-body").append("<ul id='q" + question_id + "'></ul>");
+                            var choices = questions[question_id]["choices"];
+                            for (var j = 0; j < choices.length; j++) {
+                                var choice_id = choices[j]["id"]
+                                var choice_statement = choices[j]["statement"];
+                                $("#q" + question_ids[i]).append("<input class='multiple-choice-one-answer' type='radio' name='q" + question_id + "' value=" + choice_id + ">" + choice_statement + "<br>");
+                            }
+                            $(".modal-body").append("</br>");
+                        if(type=="textual"){
+                            $(".modal-body").append("<p>"+question_number+".   "+statement+"</p>");
+                            $(".modal-body").append("<textarea class='textual' id='q"+question_ids[i]+"' rows='3'></textarea>");
                         }
-                        $(".modal-body").append("</br>");
-                    }
-
-                    for(var i=0;i<textualquestion_ids.length;i++){
-                        question_number = question_number + 1;
-                        var statement = textualquestions[textualquestion_ids[i]]["statement"];
-                        $(".modal-body").append("<p>"+question_number+".   "+statement+"</p>");
-                        $(".modal-body").append("<textarea class='textualquestion' id='tq"+textualquestion_ids[i]+"' rows='3'></textarea>");
                     }
                     //Enable quiz button
-                    $(".next-btn").prop('disabled', true);
-                    $(".quiz-btn").prop('disabled', false);
+                    /*$(".next-btn").prop('disabled', true);
+                    $(".quiz-btn").prop('disabled', false);*/
                 }else{
                     //No quiz to show
-                    $(".next-btn").prop('disabled', false);
-                    $(".quiz-btn").prop('disabled', true);
+                    /*$(".next-btn").prop('disabled', false);
+                    $(".quiz-btn").prop('disabled', true);*/
                 }
 
-            });*/
+            });
     }
 
     function showPreTest(data){
@@ -1052,48 +1313,95 @@ function initToc(course_structure){
 
     function submitQuiz(){
         var quiz_completed = true;
-        var answers = quiz_data;
+        //section_quizzes[last_page_read["id"]]=true;
+        $(".next-btn").prop("disabled",false);
+        $(".quiz-btn").prop("disabled",true);
+        //closeQuizWindow();
+
+        var section_id = last_page_read["id"];
+        var section_name = last_page_read["name"];
+        var resource_id = last_page_read["resourceid"];
+        var page_num = last_page_read["page"];
+
+        $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
+             {"user": {{ request.user.id }},
+             "session": "{{ request.session.session_key }}",
+             "group": "{{ group }}",
+             "section": section_id,
+             "name": section_name,
+             "resource": resource_id,
+             "page": page_num,
+             "action":"quiz-submit",
+             //"datetime": new Date().toISOString(),
+             "datetime": new Date().toIsoString(),
+             "visible_text": []}) );
+
+        var answers = [];
         //Check if all multiple choice questions are added
-        var mcquestions = quiz_data["mcquestions"];
-        var mcquestions_ids = Object.keys(mcquestions);
-        for(var i=0;i<mcquestions_ids.length;i++){
-            mcquestion_id = mcquestions_ids[i];
-            mcquestion = mcquestions[mcquestion_id];
-            if (!$("input[name=mcq"+mcquestion_id+"]:checked").val()){
-                quiz_completed = false;
-            }else{
-                var selected_choices = $("input[name=mcq"+mcquestion_id+"]:checked").val();
-                answers["mcquestions"][mcquestion_id]["answer"] = selected_choices;
+        var questions = quiz_data["questions"];
+        var questions_ids = Object.keys(questions);
+        for(var i=0;i<questions_ids.length;i++){
+            question_id = questions_ids[i];
+            question = questions[question_id];
+            var type = question["type"];
+            if(type=="multiple-choice-one-answer"){
+                if (!$("input[name=q"+question_id+"]:checked").val()){
+                    quiz_completed = false;
+                }else{
+                    var selected_choices = $("input[name=q"+question_id+"]:checked").val();
+                    answers.push({"question_id":question_id, "type": type, "answer": selected_choices});
+                }
             }
-        }
-        var textualquestions =  quiz_data["textualquestions"];
-        var textualquestions_ids = Object.keys(textualquestions);
-        for(var i=0;i<textualquestions_ids.length;i++){
-            textualquestion_id = textualquestions_ids[i];
-            textualquestion = textualquestions[textualquestion_id];
-            console.log(textualquestion_id);
-            console.log(textualquestion);
-            if ($('#tq'+textualquestion_id).val() == ''){
-                quiz_completed = false;
-            }else{
-                answers["textualquestions"][textualquestion_id]["answer"]=$('#tq'+textualquestion_id).val();
+            if(type=="textual"){
+                if ($('#q'+question_id).val() == ''){
+                    quiz_completed = false;
+                }else{
+                    answers.push({"question_id":question_id, "type": type, "answer": $('#q'+question_id).val()});
+                }
             }
+
         }
         if(quiz_completed){
             console.log(answers);
-            //$.get( "http://{{ request.META.HTTP_HOST }}/reader_project/api/quiz/check",
-            $.get( "http://{{ request.META.HTTP_HOST }}/api/quiz/check",
-                     {"user": {{ request.user.id }},
-                     "group": "{{ group }}",
-                     "section": last_page_read["id"],
-                     "answers": answers},
-                    function(data){
-                        console.log(data);
-                    });
+            var quiz_id= quiz_data["quiz"];
+            //$.get( "http://{{ request.META.HTTP_HOST }}/reader_project/api/quiz/assess",
+            $.ajax({
+               url: "http://{{ request.META.HTTP_HOST }}/api/quiz/assess",
+               data:
+                   JSON.stringify({"quiz": quiz_id,
+                   "user": {{request.user.id}},
+                   "answers": answers
+                   }),
+               error: function() {
+                  alert('We could not process your submission, please try it again');
+               },
+               success: function(data) {
+                  var assessment = data["assessment"];
+                  for (var i=0; i<assessment.length; i++){
+                      var answer = assessment[i];
+                      var type = answer["type"];
+                      var question_id = answer["question_id"];
 
-            $(".submit-btn").text("Go to next section ❯");
+                      if(type=="multiple-choice-one-answer"){
+                          var correct = answer["correct"];
+                          $("#q"+question_id+"-feedback-img").removeClass();
+                          if(correct==true){
+                              $("#q"+question_id+"-feedback-img").addClass("correct-feedback-img");
+                          }else{
+                              $("#q"+question_id+"-feedback-img").addClass("incorrect-feedback-img");
+                          }
 
-            $(".submit-btn").unbind("click");
+                      }
+                  }
+               },
+               type: 'POST',
+               contentType: 'application/json',
+               dataType: 'json'
+            });
+
+            //$(".submit-btn").text("Go back to read ❯");
+
+            /*$(".submit-btn").unbind("click");
             $(".submit-btn").click(function(e){
                 e.preventDefault();
                 modal.style.display = "none";
@@ -1101,7 +1409,7 @@ function initToc(course_structure){
                 //$(".next-btn").text("Next ❯");
                 return false;
             });
-            loadNextPage();
+            loadNextPage();*/
         }else{
             alert("Need to complete all your answers!");
         }
@@ -1114,13 +1422,12 @@ function initToc(course_structure){
     function highlightTocSection(section_id){
         d3.selectAll("g.toc-section.active").attr("class","toc-section").select("rect").style("fill","#ffffff");
         var toc_path_to_highlight = getAncestors(d3.select("#toc-section-"+section_id).node().__data__);
-        console.log(toc_path_to_highlight);
         for(var i=0;i<toc_path_to_highlight.length;i++){
             var section = toc_path_to_highlight[i]["id"];
             d3.select("g#toc-section-"+section)
                 .attr("class","toc-section active")
                 .select("rect")
-                    .style("fill",function(d){console.log(d);return toc_color(d.depth)});
+                    .style("fill",function(d){return toc_color(d.depth)});
         }
 
     }
@@ -1139,6 +1446,50 @@ function initToc(course_structure){
         //TODO: check if section exists first or not
         var section = $.grep(course_linear_structure, function(d){ return d.id == section_id;})[0];
         return section;
+    }
+
+    function hierarchicalCourseSectionUpdate(sections, section_id, page) {
+        for (section_index in sections){
+            var section = sections[section_index];
+            console.log("searching section: "+section_id);
+            console.log(section["id"]);
+            if (section["id"] == section_id) {
+                console.log("section found");
+                updateReadPage(section, page);
+                return true;
+            }
+            // Item not returned yet. Search its children by recursive call.
+            if (section.children) {
+                var subresult = hierarchicalCourseSectionUpdate(section.children, section_id, page);
+                // If the item was found in the subchildren, return it.
+                if (subresult){
+                    console.log("section found");
+                    updateReadPage(section, page);
+                    return true;
+                }
+
+            }
+        }
+        return false;
+    }
+
+    function updateReadPage(section, page){
+        if(section["read_pages_list"].indexOf(page)==-1){
+            section["read_pages_list"].push(page);
+            section["read_pages"]=section["read_pages"]+1;
+            d3.select("#rect-"+section["id"]).transition()
+                .duration(500)
+                .attr("fill", function(d){
+                    console.log("update section");
+                    console.log(section);
+                    var visited_pages = section["read_pages"];
+                    var total_section_pages = d.num_pages;
+                    var proportion_visited_pages = visited_pages / total_section_pages;
+                    return color(proportion_visited_pages)});
+            if(section["parent"]){
+                updateReadPage(section["parent"],page);
+            }
+        }
     }
 
     function hierarchicalToLinearStructure(data){
@@ -1164,6 +1515,7 @@ function initToc(course_structure){
         this.parentNode.appendChild(this);
       });
     };
+
 
     d3.selection.prototype.moveToBack = function() {
         return this.each(function() {

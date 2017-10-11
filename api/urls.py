@@ -9,6 +9,6 @@ urlpatterns = [
     url(r"^annotator/search/?$", views.search, name="search"),
     url(r"^reader/?$", views.reading_log, name="reading_log"),
     url(r"^quiz/?$", views.quiz, name="quiz"),
-    url(r"^quiz/check?$", views.check_quiz, name="check_quiz"),
+    url(r"^quiz/assess?$", views.assess, name="assess"),
     url(r"^kcs/?$", views.kcs, name="kcs")
 ]

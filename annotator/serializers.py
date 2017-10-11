@@ -19,7 +19,7 @@ class AnnotationSerializer(serializers.ModelSerializer):
     They therefore require explicit handling.
     """
 
-    user = serializers.CharField(required=False)
+    #user = serializers.CharField(required=False)
     ranges = RangeSerializer(many=True)
 
     class Meta:
