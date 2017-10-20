@@ -19,15 +19,20 @@
     <script src="{% static "reader/js/jquery-1.9.1.js" %}"></script>
     <script src="{% static "annotator/js/annotator-full.min.js" %}"></script>
 
+     <script type="text/javascript" src="{% static "annotator/js/short-unique-id.min.js" %}"></script>
+
+
     <script type="text/javascript" src="{% static "annotator/view_annotator/js/jquery.dateFormat.js" %}"></script>
     <script type="text/javascript" src="{% static "annotator/view_annotator/i18n/jquery.i18n.js" %}"></script>
     <script type="text/javascript" src="{% static "annotator/view_annotator/i18n/locale/en/annotator.js" %}"></script>
 
     <script type="text/javascript" src="{% static "annotator/view_annotator/js/view_annotator.js" %}"></script>
+    <script type="text/javascript" src="{% static "annotator/view_annotator/js/jquery.slimscroll.js" %}"></script>
+
     <script type="text/javascript" src="{% static "annotator/tinymce/tinymce.min.js" %}"></script>
     <script type="text/javascript" src="{% static "annotator/view_annotator/js/richEditor.js" %}"></script>
-    <script type="text/javascript" src="{% static "annotator/view_annotator/js/jquery.slimscroll.js" %}"></script>
-    <script type="text/javascript" src="{% static "annotator/js/short-unique-id.min.js" %}"></script>
+
+
 
 
     <!--<script type="text/javascript" src="{% static "annotorious-0.6.4/annotorious.min.js" %}"></script>-->
@@ -45,6 +50,7 @@
     <!--<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>-->
 
     <script src="//d3js.org/d3.v3.min.js"></script>
+    <script src="http://labratrevenge.com/d3-tip/javascripts/d3.tip.v0.6.3.js"></script>
     <script type="text/javascript" src="{% static "reader/js/cloud.js" %}"></script>
     <!--<script type="text/javascript" src="{% static "reader/js/fisheye.js" %}"></script>-->
 
@@ -94,8 +100,6 @@
 
 <script type="text/javascript">
 
-    var uid = new ShortUniqueId();
-
     var last_page_read = {};
     var resource_id;
     var course_hierarchical_structure = {};
@@ -103,7 +107,9 @@
     var quiz_data= {};
     var modal;
 
-    var progressVisUpdater;
+    var course_level_labels = ["Weeks","Chapters","Subchap."];
+
+    var tip_ind;
 
     //var section_quizzes = {"ir-4-1-1-1":false,"ir-4-1-1-3":false,"ir-4-1-2-3":false,"ir-4-1-4":false};
 
@@ -113,8 +119,7 @@
 
     var color = d3.scale.linear()
         .domain([0.0, 1.0])
-        //.range(["#ECEEF5", "#011568"]);
-        .range(["#E0E0E0", "#339933"]);
+        .range(["#E0E0E0", "#2562c3"]);
 
 
     jQuery(function ($) {
@@ -134,6 +139,76 @@
         });
 
         loadHtml();
+
+        // Set the name of the hidden property and the change event for visibility
+        var hidden, visibilityChange;
+        if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
+          hidden = "hidden";
+          visibilityChange = "visibilitychange";
+        } else if (typeof document.msHidden !== "undefined") {
+          hidden = "msHidden";
+          visibilityChange = "msvisibilitychange";
+        } else if (typeof document.webkitHidden !== "undefined") {
+          hidden = "webkitHidden";
+          visibilityChange = "webkitvisibilitychange";
+        }
+
+        // If the page is hidden, pause the video;
+        // if the page is shown, play the video
+        function handleVisibilityChange() {
+
+            var section_id = last_page_read["id"];
+            var section_name = last_page_read["name"];
+            var resource_id = last_page_read["resourceid"];
+            var page_num = last_page_read["page"];
+
+            //Get all the text html containers
+            var visible_text_elements = [];
+            var visible_text = "";
+            $("#page-container").find(".t").each(function(){
+                if(isElementInViewport($(this))){
+                    visible_text_elements.push($(this).attr("class"));
+                    visible_text = visible_text + " " + $(this).text();
+                }
+            });
+          if (document[hidden]) {
+            $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
+             {"user": {{ request.user.id }},
+             "session": "{{ request.session.session_key }}",
+             "group": "{{ group }}",
+             "section": section_id,
+             "name": section_name,
+             "resource": resource_id,
+             "page": page_num,
+             "action":"page-not-visible",
+             //"datetime": new Date().toISOString(),
+             "datetime": new Date().toIsoString(),
+             "visible_text": visible_text_elements,
+             "extra": []}));
+          } else {
+            $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
+             {"user": {{ request.user.id }},
+             "session": "{{ request.session.session_key }}",
+             "group": "{{ group }}",
+             "section": section_id,
+             "name": section_name,
+             "resource": resource_id,
+             "page": page_num,
+             "action":"page-visible",
+             //"datetime": new Date().toISOString(),
+             "datetime": new Date().toIsoString(),
+             "visible_text": visible_text_elements,
+             "extra": []}));
+          }
+        }
+
+        // Warn if the browser doesn't support addEventListener or the Page Visibility API
+        if (typeof document.addEventListener === "undefined" || typeof document[hidden] === "undefined") {
+          console.log("This demo requires a browser, such as Google Chrome or Firefox, that supports the Page Visibility API.");
+        } else {
+            // Handle page visibility change
+            document.addEventListener(visibilityChange, handleVisibilityChange, false);
+        }
 
         $('.previous-btn').click( function(e) {
             e.preventDefault();
@@ -235,29 +310,25 @@ function loadHtml() {
         var last_page_read_number = parseInt(last_page_read["page"]);
         last_page_read = last_section_read[0];
         last_page_read["page"] = last_page_read_number;
-        console.log(last_page_read);
     }
-
-    progressVisUpdater = initProgressVis(course_hierarchical_structure);
-
+    initProgressVis(course_hierarchical_structure);
     initToc(course_hierarchical_structure);
+    //Once the TOC is completely loaded, the view need to be focused on the current section
+    $.when(initToc(course_hierarchical_structure)).then(function () {
+        focusCurrentTocSection();
+    });
 
-    loadResource(last_page_read["id"],last_page_read["name"],last_page_read["resourceid"],last_page_read["page"]);
-
-    var text_html = $('.t').text();
-    console.log($(".t")[0]);
-    //initWordCloud(text_html);
-
-
-    //});
+    loadResource(last_page_read["id"],last_page_read["name"],last_page_read["resourceid"],last_page_read["page"],"site-load");
 
 }
 
 
 function initProgressVis(root){
 
+    var margin = {top: 45, right: 0, bottom: 0, left: 20};
+
     var w = $("#vis-div").width();
-    var h = $("#vis-div").height();
+    var h = $("#vis-div").height()-margin.top;
 
     var svg_size = w;//Change for making svg and svg-comp diferent
 
@@ -266,7 +337,7 @@ function initProgressVis(root){
         .children(function children(d) {
           return d.children;
         })
-        .value(function(d) {return Math.log(d.epage-d.spage+1); });
+        .value(function(d) {return Math.log(d.epage-d.spage+2); });
 
 
     var x = d3.scale.linear()
@@ -339,13 +410,33 @@ function initProgressVis(root){
           .on("dblclick", partitionTableDoubleClick)
           .on("mouseout",partitionTableMouseout);*/
 
+        tip_ind = d3.tip()
+          .attr('class', 'd3-tip')
+          .offset([-10, 0])
+          .html(function(d) {
+                var visited_pages = d.read_pages;
+                var total_section_pages = d.num_pages;
+                var proportion_visited_pages = visited_pages / total_section_pages;
+                return d.name+"<hr style='height:0.2em; visibility:hidden; margin:0px;'>Reading progress: "+(proportion_visited_pages*100).toFixed(0)+"%";
+         });
+
+
         var svg_ind = d3.select("#vis-div").append("svg")
             .attr("id", "svg-vis")
             .attr("width", svg_size)
             .attr("height", h)
             .append("g")
             .attr("id", "g_progress_vis")
-            .attr("transform", "translate(-10,0)");//TODO: parametrize horizontal translation
+            .attr("transform", "translate(-"+margin.left+","+margin.top+")");//TODO: parametrize horizontal translation
+
+        svg_ind.selectAll("text")
+            .data(course_level_labels)
+            .enter()
+            .append("text")
+            .text(function(d){return d;})
+            .attr("transform",function(d,i){return "translate("+(x((i+1)/(course_level_labels.length+1))+10)+","+y(0)+") rotate(-55)";})
+            .style("font-size","10px");
+
 
         var rect = svg_ind.selectAll("rect");
 
@@ -354,11 +445,14 @@ function initProgressVis(root){
                 return d.id;
             })
             .enter().append("g")
-            .attr("class", function (d) {
+            .attr("class", "vis-section" )/*function (d) {
                 classname = "partition_depth_" + d.depth;
-
                 return classname;
-            })
+            })*/
+            .attr("id", function(d){return "vis-section-"+d.id;} )
+            .on("click", visSectionClick)
+            .on("mouseover", visSectionMouseover)
+            .on("mouseout", visSectionMouseout)
             .append("rect")
             .attr("x", function (d) {
                 return x(d.y) + d.depth * separation;
@@ -383,32 +477,68 @@ function initProgressVis(root){
 
                 return classname;
             })
-            .attr("id", function(d){return "rect-"+d.id;})
+            .attr("id", function(d){return "vis-"+d.id;})
             .attr("display", function (d) {
                 return d.depth && d.depth <= 4 ? null : "none";
             })//d.depth && d.depth<=3 ? null : "none"; })
-            .attr("stroke-width", "1px")
+            .attr("stroke-width", "0.5px")
             .attr("stroke", "white")
-            .attr("opacity", 1)
-            .on("click", visSectionClick)
-            .on("mouseover", visSectionMouseover)
-            .on("mouseout", visSectionMouseout);
+            .attr("opacity", 1);
+
         /*.on("dblclick", partitionTableDoubleClick)
           .on("mouseover",partitionTableMouseover)
           .on("mouseout",partitionTableMouseout);*/
 
+        svg_ind.call(tip_ind);
+
         //Container for the gradients
         var defs = svg_ind.append("defs");
 
+        //Code taken from http://stackoverflow.com/questions/9630008/how-can-i-create-a-glow-around-a-rectangle-with-svg
         //Filter for the outside glow
+        var glow_filter = defs.append("filter")
+            .attr("id","glow");
+
+        glow_filter.append("feGaussianBlur")
+            .attr("class", "blur")
+            .attr("stdDeviation","4.5")
+            .attr("result","coloredBlur");
+
+        glow_feMerge = glow_filter.append("feMerge");
+        glow_feMerge.append("feMergeNode")
+            .attr("in","coloredBlur");
+        glow_feMerge.append("feMergeNode")
+            .attr("in","SourceGraphic");
+
+        //Filter for colored shadows in the progress visualization
         var filter = defs.append("filter")
-            .attr("id", "glow");
+            .attr("id", "drop-shadow")
+
         filter.append("feGaussianBlur")
-            .attr("stdDeviation", "4")
-            .attr("result", "coloredBlur");
+            .attr("in", "SourceAlpha")
+            .attr("stdDeviation", 4)
+            .attr("result", "blur");
+        filter.append("feOffset")
+            .attr("in", "blur")
+            .attr("dx", 3)
+            .attr("dy", 3)
+            .attr("result", "offsetBlur")
+        filter.append("feFlood")
+            .attr("in", "offsetBlur")
+            //.attr("flood-color", "#0052ff")
+            .attr("flood-color", "#000000")
+            .attr("flood-opacity", "0.5")
+            .attr("result", "offsetColor");
+        filter.append("feComposite")
+            .attr("in", "offsetColor")
+            .attr("in2", "offsetBlur")
+            .attr("operator", "in")
+            .attr("result", "offsetBlur");
+
         var feMerge = filter.append("feMerge");
+
         feMerge.append("feMergeNode")
-            .attr("in", "coloredBlur");
+            .attr("in", "offsetBlur")
         feMerge.append("feMergeNode")
             .attr("in", "SourceGraphic");
 
@@ -466,16 +596,13 @@ function initProgressVis(root){
 
 }
 
-function loadResource(section_id,section_name,resource_id,page_num){
+function loadResource(section_id,section_name,resource_id,page_num,source){
+
      var current_section = getSectionById(section_id);
-     console.log(current_section);
-
-     hierarchicalCourseSectionUpdate(course_hierarchical_structure.children,section_id,parseInt(page_num));
-
-
      var epage = parseInt(current_section["epage"]);
      var spage = parseInt(current_section["spage"]);
-     console.log("epage: "+epage+" spage: "+spage+" page: "+page_num);
+
+     console.log("section_id:"+section_id+" epage: "+epage+" spage: "+spage+" page: "+page_num);
 
      //$("#toc-section-"+section_id).addClass("active");
     $(".previous-btn").prop("disabled",false);
@@ -485,6 +612,15 @@ function loadResource(section_id,section_name,resource_id,page_num){
     var last_section_read = $.grep(course_linear_structure, function(d){ return d.id == section_id; });
         last_section_read[0]["page"]=parseInt(page_num);
         last_page_read = last_section_read[0];
+
+
+    $.when(unhighlightTocSections()).then(function () {
+        highlightTocSection(section_id);
+    });
+
+    $.when(unhighlightVisSections()).then(function () {
+        highlightVisSection(section_id);
+    });
 
      if(page_num == spage){
         //$.get( "http://{{ request.META.HTTP_HOST }}/reader_project/api/kcs",
@@ -504,16 +640,11 @@ function loadResource(section_id,section_name,resource_id,page_num){
      }
      //var section_quizzes_ids = Object.keys(section_quizzes);
      if(page_num == epage){
-         //Load quiz, if there is any quiz related to the section
+        //Load quiz, if there is any quiz related to the section
         loadQuiz();
-        //$(".next-btn").text("Go to quiz ✎");
-        //$(".next-btn").removeClass("next-btn").addClass("quiz-btn");
-        //$(".quiz-btn").unbind( "click" );
-        //$(".quiz-btn").click(openQuizWindow);
-        //$(".submit-btn").click(submitQuiz);
          // if(section_quizzes_ids.indexOf(section_id)>-1 && !section_quizzes[section_id]){
-            $(".next-btn").prop("disabled",true);
-            $(".quiz-btn").prop("disabled",false);
+            //$(".next-btn").prop("disabled",true);
+            //$(".quiz-btn").prop("disabled",false);
          //}
         var index_last_page_read = course_linear_structure.map(function(d) { return d.id; }).indexOf(last_page_read["id"]);
         if (index_last_page_read==course_linear_structure.length-1){
@@ -522,7 +653,9 @@ function loadResource(section_id,section_name,resource_id,page_num){
 
      }
 
-     highlightTocSection(section_id);
+     hierarchicalCourseSectionUpdate(course_hierarchical_structure.children,section_id,parseInt(page_num));
+
+
 
      var resource_path = "resources/"+resource_id+"/"+resource_id+"-"+page_num+".html";
 
@@ -532,9 +665,12 @@ function loadResource(section_id,section_name,resource_id,page_num){
         $(".title-current-section").html(section_name);
 
         //initWordCloud(text_html);
-        var annotator = $('#page-container').annotator().annotator().data('annotator');
+
+        var annotator = $('#page-container').annotator();
+
         var propietary = {{ request.user.id }};
-        annotator.addPlugin('Permissions', {
+        $('#page-container').annotator()
+                 .annotator('addPlugin', 'Permissions', {
             user: propietary,
             permissions: {
                 'read': [propietary],
@@ -545,25 +681,25 @@ function loadResource(section_id,section_name,resource_id,page_num){
          showViewPermissionsCheckbox: true,
          showEditPermissionsCheckbox: false
         });
+
+
+
         $('#page-container').annotator().annotator('addPlugin', 'RichEditor');
 
-
-
-        $('#page-container').annotator('addPlugin', 'Store', {
+        $('#page-container').annotator()
+                 .annotator('addPlugin', 'Store', {
           // The endpoint of the store on your server.
           prefix: "/annotator",
 
           // Attach the uri of the current page to all annotations to allow search.
           annotationData: {
-            "uuid": {{ request.user.id }}+"-"+uid.randomUUID(6),
-            "uri": resource_id+"-"+page_num+".html",
+            "uri": resource_id+"-"+page_num,
             "user": {{ request.user.id }},
             "session": "{{ request.session.session_key }}",
             "group": "{{ group }}"
           },
           loadFromSearch: {
-            //'limit': 20,
-            "uri": resource_id+"-"+page_num+".html",
+            "uri": resource_id+"-"+page_num,
             "group": "{{ group }}"
           },
           urls: {
@@ -574,56 +710,11 @@ function loadResource(section_id,section_name,resource_id,page_num){
             search:  '/search'
           }
          });
-
 
         $('#page-container').annotator().annotator('addPlugin', 'AnnotatorViewer');
 
+        // $('#anotacions-uoc-panel').slimscroll({height: '100%'});
 
-
-
-
-
-
-        //var content = $('#page-container').annotator();
-        /*content.annotator("addPlugin", "Store", {
-          // The endpoint of the store on your server.
-          prefix: "/annotator",
-
-          // Attach the uri of the current page to all annotations to allow search.
-          annotationData: {
-            "uri": resource_id+"-"+page_num+".html",
-            "user": {{ request.user.id }},
-            "session": "{{ request.session.session_key }}",
-            "group": "{{ group }}"
-          },
-          loadFromSearch: {
-            //'limit': 20,
-            "uri": resource_id+"-"+page_num+".html",
-            "group": "{{ group }}"
-          },
-          urls: {
-            // These are the default URLs.
-            create:  '/annotations',
-            update:  '/annotations/:id',
-            destroy: '/annotations/:id',
-            search:  '/search'
-          }
-         });
-
-        var propietary = {{ request.user.id }};
-        content.annotator("addPlugin","Permissions", {
-                        user: propietary,
-                        permissions: {
-                            'read': [propietary],
-                            'update': [propietary],
-                            'delete': [propietary],
-                            'admin': [propietary]
-                     },
-                     showViewPermissionsCheckbox: false,
-                     showEditPermissionsCheckbox: false
-                    });
-        content.annotator("addPlugin", "RichEditor");
-        content.annotator("addPlugin", "AnnotatorViewer");*/
 
          //Get all the text html containers
         var visible_text_elements = [];
@@ -634,22 +725,20 @@ function loadResource(section_id,section_name,resource_id,page_num){
                 visible_text = visible_text + " " + $(this).text();
             }
         });
-         console.log(new Date().toIsoString());
 
          var reader_height = document.getElementById("page-container").scrollHeight;
-            console.log(reader_height);
-            var top = $("#page-container").scrollTop() - $("#page-container").offset().top;
-		    var bottom = top + window.innerHeight;
 
-		    top = Math.min(reader_height, Math.max(0, top));
-		    bottom = Math.min(reader_height, Math.max(0, bottom));
+         var top = $("#page-container").scrollTop() - $("#page-container").offset().top;
+         var bottom = top + window.innerHeight;
 
-		    // top and bottom are between 0 and 100
-		    top = (100 * top / reader_height).toFixed(4);
-		    bottom = (100 * bottom / reader_height).toFixed(4);
+         top = Math.min(reader_height, Math.max(0, top));
+         bottom = Math.min(reader_height, Math.max(0, bottom));
 
-		    console.log("top: "+top+"bottom: "+bottom);
-            var viewport_positions={"top":top,"bottom":bottom};
+        // top and bottom are between 0 and 100
+         top = (100 * top / reader_height).toFixed(4);
+         bottom = (100 * bottom / reader_height).toFixed(4);
+
+         var extra_info={"source":source,"top":top,"bottom":bottom};
 
          //$.post( "http://{{ request.META.HTTP_HOST }}/reader_project/api/reader", JSON.stringify(
          $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
@@ -664,7 +753,7 @@ function loadResource(section_id,section_name,resource_id,page_num){
              //"datetime": new Date().toISOString(),
              "datetime": new Date().toIsoString(),
              "visible_text": visible_text_elements,
-             "extra": viewport_positions}));
+             "extra": extra_info}));
 
          //If user scrolls the page
         var t, l = (new Date()).getTime(), scrolling = false;
@@ -930,9 +1019,15 @@ function csrfSafeMethod(method) {
 }
 
 function visSectionClick(d){
-    //d3.select("#toc-section-"+d.id).on("click")();
-    //tocSectionClick(d);
-    console.log(d.epage-d.spage);
+    var section_metadata = d;
+    var section_id = section_metadata["id"];
+    var resource_id = section_metadata["resourceid"];
+    var page_num = section_metadata["spage"];
+    var section_name = section_metadata["name"];
+
+    loadResource(section_id,section_name,resource_id,page_num,"click-vis-"+section_id);
+
+    focusCurrentTocSection();
 }
 
 function initToc(course_structure){
@@ -999,13 +1094,13 @@ function initToc(course_structure){
 
       // Enter any new nodes at the parent's previous-btn position
       nodeEnter.filter(function(d) {
-                return d.children;
+                return d.children && d.depth>0;
             })
         .append('path')
         .attr("class","toc-toggle active")
-        .attr("d", d3.svg.symbol().type("triangle-down").size(70))
+        .attr("d", d3.svg.symbol().type("triangle-down").size(60))
         .attr("transform", function(d) { return "translate(" + -6 + "," + 0+ ")"; })
-        .style("fill", "#EB7900")
+        .style("fill", "#3d3d3d")
         .on("click", tocSectionToggle);
 
       nodeEnter.append("rect")
@@ -1029,8 +1124,8 @@ function initToc(course_structure){
           .duration(duration)
           .attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; })
           .style("opacity", 1)
-        .select("rect")
-          .style("fill", "white");
+        .select("rect");
+          //.style("fill", "white");
 
       // Transition exiting nodes to the parent's new position.
       node.exit().transition()
@@ -1074,6 +1169,8 @@ function initToc(course_structure){
         d.x0 = d.x;
         d.y0 = d.y;
       });
+
+
     }
 
     // Toggle children on click.
@@ -1085,13 +1182,13 @@ function initToc(course_structure){
             d3.select(this)
                 .classed("active",false)
                 .transition()
-                .duration(500)
+                .duration(300)
                 .attr("transform","translate(-5,0) rotate(-90)");
         }else{
             d3.select(this)
                 .classed("active",true)
                 .transition()
-                .duration(500)
+                .duration(300)
                 .attr("transform","translate(-5,0) rotate(0)");
         }
         if (d.children) {
@@ -1103,6 +1200,8 @@ function initToc(course_structure){
         }
 
         update(d);
+        highlightTocSection(last_page_read["id"]);
+
     }
 
     function tocSectionClick(d){
@@ -1113,7 +1212,7 @@ function initToc(course_structure){
         var resource_id = section_metadata["resourceid"];
         var page_num = section_metadata["spage"];
         var section_name = section_metadata["name"];
-        loadResource(section_id,section_name,resource_id,page_num);
+        loadResource(section_id,section_name,resource_id,page_num,"click-toc-"+section_id);
     }
 
 }
@@ -1126,7 +1225,7 @@ function initToc(course_structure){
         console.log("epage: "+epage+" spage: "+spage+" page: "+page+" resourceid: "+resourceid);
         if (page > spage){
             last_page_read["page"] = page - 1;
-            loadResource(last_page_read["id"],last_page_read["name"],last_page_read["resourceid"],last_page_read["page"]);
+            loadResource(last_page_read["id"],last_page_read["name"],last_page_read["resourceid"],last_page_read["page"],"click-previous");
         }else{
             var index_last_page_read = course_linear_structure.map(function(d) { return d.id; }).indexOf(last_page_read["id"]);
             if(index_last_page_read >=0 && index_last_page_read < course_linear_structure.length){
@@ -1141,7 +1240,7 @@ function initToc(course_structure){
                 }else{
                     last_page_read["page"] = last_page_read["epage"];
                 }
-                loadResource(last_page_read["id"],last_page_read["name"],last_page_read["resourceid"],last_page_read["page"]);
+                loadResource(last_page_read["id"],last_page_read["name"],last_page_read["resourceid"],last_page_read["page"],"click-previous");
             }
         }
     }
@@ -1154,7 +1253,7 @@ function initToc(course_structure){
         console.log("epage: "+epage+" spage: "+spage+" page: "+page+" resourceid: "+resourceid);
         if (page < epage){
             last_page_read["page"] = page + 1;
-            loadResource(last_page_read["id"], last_page_read["name"], last_page_read["resourceid"], last_page_read["page"]);
+            loadResource(last_page_read["id"], last_page_read["name"], last_page_read["resourceid"], last_page_read["page"],"click-next");
         }else{
             var index_last_page_read = course_linear_structure.map(function(d) { return d.id; }).indexOf(last_page_read["id"]);
             if(index_last_page_read >=0 && index_last_page_read < course_linear_structure.length){
@@ -1169,7 +1268,7 @@ function initToc(course_structure){
                 }else{
                     last_page_read["page"] = last_page_read["spage"];
                 }
-                loadResource(last_page_read["id"],last_page_read["name"],last_page_read["resourceid"],last_page_read["page"]);
+                loadResource(last_page_read["id"],last_page_read["name"],last_page_read["resourceid"],last_page_read["page"],"click-next");
             }
         }
     }
@@ -1179,42 +1278,35 @@ function initToc(course_structure){
 
         //d3.select(this).style("stroke","#000");
         //d3.select(this).style("stroke-width", "1");
-
+        tip_ind.show(d);
+        highlightVisSection(d.id);
         // Then highlight only those that are an ancestor of the current segment.
-        var sequenceArray = getAncestors(d);
+        //var sequenceArray = getAncestors(d);
 
-        var highlighted_sections = d3.selectAll("rect")
+        /*var highlighted_sections = d3.selectAll(".vis-section")
             .filter(function(node) {
                 return (sequenceArray.indexOf(node) >= 0);
             })
+            .select("rect")
+            .transition()
+            .duration(250)
+                .style("opacity", 1)
+                .style("stroke", "black")
+                .style("stroke-width","1.5px")
+                .attr("transform","translate(5,0)");
+            //.style("filter", "url(#glow)");*/
+
+        /*var not_highlighted_sections = d3.selectAll("rect")
+            .filter(function(node) {
+                return (sequenceArray.indexOf(node) < 0);
+            })
             .style("opacity", 1)
-            .style("stroke", "black")
-            .style("stroke-width","1")
-            .style("filter", "url(#glow)");
-        //highlighted_sections.moveToFront();
+            .style("stroke", "white")
+            .style("stroke-width","0.5px");
+            //.style("filter", "url(#glow)");
 
+        highlighted_sections.moveToFront();*/
 
-
-        /*if(d.type == "lecture"){
-            //$("#tip").html(d.name + ":<br/>" + d.title); // @@@@
-            $("#tip").html(d.title);
-        }else{
-            var bookName = getBookName(d.bookid);
-            $("#tip").html("[Book] <b>" + bookName + "</b>: " + d.name);
-        }*/
-        $("#tip").css("color","#777777");
-
-        /* BEGIN iframe selection */
-        // @@@@ this was intended to show selection in the small multiples frame, but it is broken, and commented
-        // @@@@ in order to prevent a javascript error
-        if (d.type == "lecture") {
-            //parent.frames['iframe-sm'].selectFunction('arc' + (d.name.replace(/ /g, "-")), 0.1);
-        } else {
-            //parent.frames['iframe-sm'].selectFunction('arc' + (searchParent(d).replace(/ /g, "-")), 0.1);
-        }
-        /* END iframe selection */
-        //$("#tip").html("[Book] <b>" + bookName + "</b>: " + d.name);
-        return false;
     }
 
     function openQuizWindow(){
@@ -1270,32 +1362,62 @@ function initToc(course_structure){
                     for(var i=0;i<question_ids.length;i++) {
                         var statement = questions[question_ids[i]]["statement"];
                         var type = questions[question_ids[i]]["type"];
-                        console.log(type);
                         question_number = question_number + 1;
                         if(type=="multiple-choice-one-answer");
                             var question_id = question_ids[i];
-                            $(".modal-body").append("<img class='no-feedback-img' id='q"+question_id+"-feedback-img'>");
+                            var correct = questions[question_ids[i]]["correct"];
+                            var disabled = "";
+                            var previous_answer;
+                            if(correct){
+                                disabled = "disabled";
+                                previous_answer = questions[question_ids[i]]["previous_answer"];
+                                $(".modal-body").append("<img class='correct-feedback-img' id='q"+question_id+"-feedback-img'>");
+                            }else{
+                                $(".modal-body").append("<img class='no-feedback-img' id='q"+question_id+"-feedback-img'>");
+                            }
+
                             $(".modal-body").append("<p class 'question-statement' id='q"+question_id+"-statement'>" + question_number + ".   " + statement + "</p>");
                             $(".modal-body").append("<ul id='q" + question_id + "'></ul>");
                             var choices = questions[question_id]["choices"];
                             for (var j = 0; j < choices.length; j++) {
                                 var choice_id = choices[j]["id"]
                                 var choice_statement = choices[j]["statement"];
-                                $("#q" + question_ids[i]).append("<input class='multiple-choice-one-answer' type='radio' name='q" + question_id + "' value=" + choice_id + ">" + choice_statement + "<br>");
+                                if (previous_answer == choice_id) {
+                                    $("#q" + question_ids[i]).append("<input class='multiple-choice-one-answer' type='radio' name='q" + question_id + "' value=" + choice_id + " " + disabled + " checked>" + choice_statement + "<br>");
+                                } else {
+                                    $("#q" + question_ids[i]).append("<input class='multiple-choice-one-answer' type='radio' name='q" + question_id + "' value=" + choice_id + " " + disabled + ">" + choice_statement + "<br>");
+                                }
                             }
                             $(".modal-body").append("</br>");
+
+                            //Track students' choice marks in the quiz but (before they submit they final answers)
+                            $("input[type=radio][name=q" + question_id + "]").change(function() {
+                                var quiz_id= quiz_data["quiz"];
+                                $.post( "http://{{ request.META.HTTP_HOST }}/api/quiz/attempt",
+                                    JSON.stringify({"quiz": quiz_id,
+                                   "user": {{request.user.id}},
+                                   "session": "{{ request.session.session_key }}",
+                                   "group": "{{ group }}",
+                                   "datetime": new Date().toIsoString(),
+                                   "question":question_id,
+                                   "type":type,
+                                   "answer": this.value
+                                }));
+                             });
+
                         if(type=="textual"){
                             $(".modal-body").append("<p>"+question_number+".   "+statement+"</p>");
                             $(".modal-body").append("<textarea class='textual' id='q"+question_ids[i]+"' rows='3'></textarea>");
                         }
                     }
+
                     //Enable quiz button
-                    /*$(".next-btn").prop('disabled', true);
-                    $(".quiz-btn").prop('disabled', false);*/
+                    $(".next-btn").prop('disabled', true);
+                    $(".quiz-btn").prop('disabled', false);
                 }else{
                     //No quiz to show
-                    /*$(".next-btn").prop('disabled', false);
-                    $(".quiz-btn").prop('disabled', true);*/
+                    $(".next-btn").prop('disabled', false);
+                    $(".quiz-btn").prop('disabled', true);
                 }
 
             });
@@ -1323,19 +1445,6 @@ function initToc(course_structure){
         var resource_id = last_page_read["resourceid"];
         var page_num = last_page_read["page"];
 
-        $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
-             {"user": {{ request.user.id }},
-             "session": "{{ request.session.session_key }}",
-             "group": "{{ group }}",
-             "section": section_id,
-             "name": section_name,
-             "resource": resource_id,
-             "page": page_num,
-             "action":"quiz-submit",
-             //"datetime": new Date().toISOString(),
-             "datetime": new Date().toIsoString(),
-             "visible_text": []}) );
-
         var answers = [];
         //Check if all multiple choice questions are added
         var questions = quiz_data["questions"];
@@ -1349,27 +1458,43 @@ function initToc(course_structure){
                     quiz_completed = false;
                 }else{
                     var selected_choices = $("input[name=q"+question_id+"]:checked").val();
-                    answers.push({"question_id":question_id, "type": type, "answer": selected_choices});
+                    answers.push({"question_id":question_id, "type": type, "answer": selected_choices, "submitted":true});
                 }
             }
             if(type=="textual"){
                 if ($('#q'+question_id).val() == ''){
                     quiz_completed = false;
                 }else{
-                    answers.push({"question_id":question_id, "type": type, "answer": $('#q'+question_id).val()});
+                    answers.push({"question_id":question_id, "type": type, "answer": $('#q'+question_id).val(), "submitted":true});
                 }
             }
 
         }
         if(quiz_completed){
-            console.log(answers);
             var quiz_id= quiz_data["quiz"];
+
+            $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
+             {"user": {{ request.user.id }},
+             "session": "{{ request.session.session_key }}",
+             "group": "{{ group }}",
+             "section": section_id,
+             "name": section_name,
+             "resource": resource_id,
+             "page": page_num,
+             "action":"quiz-submit",
+             //"datetime": new Date().toISOString(),
+             "datetime": new Date().toIsoString(),
+             "visible_text": []}) );
+
             //$.get( "http://{{ request.META.HTTP_HOST }}/reader_project/api/quiz/assess",
             $.ajax({
                url: "http://{{ request.META.HTTP_HOST }}/api/quiz/assess",
                data:
                    JSON.stringify({"quiz": quiz_id,
                    "user": {{request.user.id}},
+                   "session": "{{ request.session.session_key }}",
+                   "group": "{{ group }}",
+                   "datetime": new Date().toIsoString(),
                    "answers": answers
                    }),
                error: function() {
@@ -1416,20 +1541,99 @@ function initToc(course_structure){
     }
 
     function visSectionMouseout(d, i) {
-        d3.selectAll("rect").style("stroke","white");
+        tip_ind.hide(d);
+        unhighlightVisSections();
     }
 
+    function highlightVisSection(section_id){
+        var vis_path_to_highlight = getAncestors(d3.select("#vis-section-"+section_id).node().__data__);
+        var sections_ids_to_highlight = vis_path_to_highlight.map(function(d){return d.id});
+        for(var i=0;i<vis_path_to_highlight.length;i++){
+            var section = vis_path_to_highlight[i]["id"];
+            d3.select("g#vis-section-"+section)
+                .attr("class","vis-section active")
+                .select("rect")
+                    .transition()
+                    .duration(100)
+                    //.attr("transform","translate(5,0)")
+                    .style("opacity",1)
+                    //.style("stroke","#0052ff")
+                    .style("stroke","#fe9103")
+                    .style("stroke-width","1.5px")
+                    .style("filter", "url(#drop-shadow)");
+             d3.select("g#vis-section-"+section).moveToFront();
+        }
+    }
+
+    function unhighlightVisSections(){
+        var selected_sections = getAncestors(d3.select("#vis-section-"+last_page_read["id"]).node().__data__);
+        var selected_sections_ids =  selected_sections.map(function(d){return d.id;});
+        var selector = "g.vis-section.active";
+        for(var i=0;i<selected_sections_ids.length;i++){
+            selector = selector + ":not(#vis-section-"+selected_sections_ids[i]+")";
+        }
+        var unhighlighted_sections = d3.selectAll(selector)
+            /*.filter(function(d){
+                return selected_sections_ids.indexOf(d.id)==-1;
+            })*/
+            .attr("class","vis-section")
+            .select("rect")
+                .transition()
+                .duration(100)
+                .attr("transform","translate(0,0)")
+                .style("stroke","white")
+                .style("stroke-width","0.5px")
+                .style("filter", "none");
+
+        d3.selectAll("g.vis-section")
+            .filter(function(d){
+                return selected_sections_ids.indexOf(d.id)!=-1;
+            }).moveToFront();
+
+
+    }
+
+    function unhighlightTocSections(){
+        var selected_sections = getAncestors(d3.select("#toc-section-"+last_page_read["id"]).node().__data__);
+        var selected_sections_ids =  selected_sections.map(function(d){return d.id;});
+        var selector = "g.toc-section.active";
+        for(var i=0;i<selected_sections_ids.length;i++){
+            selector = selector + ":not(#toc-section-"+selected_sections_ids[i]+")";
+        }
+
+        var unhighlighted_sections = d3.selectAll(selector)
+            /*.filter(function(d){
+                return selected_sections_ids.indexOf(d.id)==-1;
+            })*/
+            .attr("class","toc-section")
+            .select("rect")
+                .style("stroke","white")
+                .style("fill","white");
+
+        /*d3.selectAll("g.toc-section")
+            .filter(function(d){
+                return selected_sections_ids.indexOf(d.id)!=-1;
+            }).moveToFront();*/
+
+
+    }
+
+
     function highlightTocSection(section_id){
-        d3.selectAll("g.toc-section.active").attr("class","toc-section").select("rect").style("fill","#ffffff");
         var toc_path_to_highlight = getAncestors(d3.select("#toc-section-"+section_id).node().__data__);
         for(var i=0;i<toc_path_to_highlight.length;i++){
             var section = toc_path_to_highlight[i]["id"];
-            d3.select("g#toc-section-"+section)
+            if(i==toc_path_to_highlight.length-1){
+                d3.select("g#toc-section-"+section)
                 .attr("class","toc-section active")
-                .select("rect")
-                    .style("fill",function(d){return toc_color(d.depth)});
+                    .select("rect")
+                    .style("stroke","#fe9103")
+                    .style("stroke-width","1.5px")
+                    .style("fill","#ff8d03")
+                    .style("opacity",0.7);
+                    //.style("filter","url(#glow");
+            }
         }
-
     }
 
     function getAncestors(node) {
@@ -1451,10 +1655,7 @@ function initToc(course_structure){
     function hierarchicalCourseSectionUpdate(sections, section_id, page) {
         for (section_index in sections){
             var section = sections[section_index];
-            console.log("searching section: "+section_id);
-            console.log(section["id"]);
             if (section["id"] == section_id) {
-                console.log("section found");
                 updateReadPage(section, page);
                 return true;
             }
@@ -1463,7 +1664,6 @@ function initToc(course_structure){
                 var subresult = hierarchicalCourseSectionUpdate(section.children, section_id, page);
                 // If the item was found in the subchildren, return it.
                 if (subresult){
-                    console.log("section found");
                     updateReadPage(section, page);
                     return true;
                 }
@@ -1477,11 +1677,10 @@ function initToc(course_structure){
         if(section["read_pages_list"].indexOf(page)==-1){
             section["read_pages_list"].push(page);
             section["read_pages"]=section["read_pages"]+1;
-            d3.select("#rect-"+section["id"]).transition()
-                .duration(500)
+            d3.select("#vis-"+section["id"]).transition()
+                .duration(300)
                 .attr("fill", function(d){
-                    console.log("update section");
-                    console.log(section);
+                    console.log("Updating color");
                     var visited_pages = section["read_pages"];
                     var total_section_pages = d.num_pages;
                     var proportion_visited_pages = visited_pages / total_section_pages;
@@ -1543,6 +1742,14 @@ function initToc(course_structure){
             ':' + pad(tzo % 60);
     }
 
+function focusCurrentTocSection(){
+    var current_position = $("#toc-div").scrollTop();
+    var section_position =  $("g#toc-section-"+last_page_read["id"]).offset().top
+
+    $('#toc-div').animate({
+        scrollTop: current_position+section_position-$("#toc-div").height()/2
+    }, 200);
+}
 </script>
 </body>
 </html>

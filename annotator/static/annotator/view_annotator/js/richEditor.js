@@ -14,6 +14,8 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 */
+var uid = new ShortUniqueId();//Generates uuid for each annotation @jordan
+
 var _ref,
   __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
   __hasProp = {}.hasOwnProperty,
@@ -49,29 +51,42 @@ RichEditor.prototype.pluginInit = function() {
     //Controlling tinymc content text, we can get the rich from the tinymce
     tinymce.init(this.options.tinymce);
     this.annotator
+        .subscribe("beforeAnnotationCreated", function(annotation){//@jordan
+            if(annotation.id==null){
+                annotation.id = uid.randomUUID(10);
+            }
+            console.log("Before annotation created RichEditor");//@jordan
+            console.log(annotation);//@jordan
+        });
+    this.annotator
       .subscribe("annotationCreated", function (annotation) {
           annotation.text = tinymce.activeEditor.getContent();
-          console.log("RichEditor annotation: ");
-          console.log(annotation);
+          console.log("RichEditor annotation: ");//@jordan
+          console.log(annotation.id);//@jordan
       });
     this.annotator
       .subscribe("annotationEditorShown", function (annotation) {
          var text = typeof annotation.annotation.text!='undefined'?annotation.annotation.text:'';
          tinymce.activeEditor.setContent(text);
+         console.log("annotationEditorShown");//@jordan
+         console.log(annotation);//@jordan
 
       });
 
     this.annotator
       .subscribe("annotationUpdated", function (annotation) {
          annotation.text = tinymce.activeEditor.getContent();
+         console.log("annotationUpdated RichEditor");//@jodan
+         console.log(annotation);//@jordan
 
       });
       this.annotator.viewer.addField({
         load: function (field, annotation) {
           EditorViewerTextField = $(field.parentElement).find('div:first-of-type');
           $(EditorViewerTextField).html(annotation.text);
-
-          console.log(annotation.text);
+          console.log("addField");//@jordan
+          console.log(field);//@jordan
+          console.log(annotation);//@jordan
         }
       })
 

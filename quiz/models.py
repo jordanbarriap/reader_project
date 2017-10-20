@@ -63,6 +63,7 @@ class AnswerLog(models.Model):
     question = models.ForeignKey(Question, on_delete=models.CASCADE)
     answer = JSONField()
     correct = models.BooleanField(default=False)
+    submitted = models.BooleanField(default=False)
 
 
 """class TextualAnswerLog(models.Model):

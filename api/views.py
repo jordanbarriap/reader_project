@@ -13,12 +13,13 @@ from django.core import serializers
 
 from django.core import serializers
 
-import annotator
 from annotator import models as annotator_models
-import quiz
+
 from quiz import models as quiz_models
-import reader
+
 from reader import models as reader_models
+
+from django.contrib.auth.models import User
 
 import json
 
@@ -193,7 +194,7 @@ def quiz(request):
     #Returning a requested quiz for an specific course section
     if request.method == 'GET':
         section_id = request.GET["section"]
-
+        user_id = request.GET["user"]
         #Query the multiple choice questions associated with the section
         #questions = quiz_models.Quiz.objects.filter(course_section=section_id).values("questions__id", "questions__statement", "questions__type","questions__choice__id")#,"questions__choice__statement")
         quiz = quiz_models.Quiz.objects.get(course_section=section_id)
@@ -203,14 +204,20 @@ def quiz(request):
         if len(questions)>0:
             for question in questions:
                 question_id = question.id
-                questions_json[question_id]={"statement": question.statement, "type": question.type, "choices":[]}
-
+                correct_result = quiz_models.AnswerLog.objects.filter(user=user_id, question=question_id, correct=1)
+                correct = False
+                previous_answer = []
+                if (len(correct_result)>0):
+                    previous_answer = correct_result.earliest("datetime")
+                    previous_answer = previous_answer.answer
+                    correct = True
+                questions_json[question_id] = {"statement": question.statement, "type": question.type, "correct": correct, "previous_answer": previous_answer,
+                                                   "choices": []}
         if len(choices)>0:
             for choice in choices:
                 question_id = choice.question_id
                 choice_json = {"id":choice.id, "statement": choice.statement}
                 questions_json[question_id]["choices"].append(choice_json)
-                print(questions_json[question_id])
 
         return JSONResponse({"quiz":quiz.id, "name": quiz.name, "questions": questions_json}, status=201)
 
@@ -224,35 +231,63 @@ def assess(request):
     """
     if request.method == 'POST':
         data = JSONParser().parse(request)
+        user_id = data["user"]
+        group_id = data["group"]
+        session_id = data["session"]
+        datetime = data["datetime"]
         quiz_id = data["quiz"]
         answers = data["answers"]
         assessment = []
         quiz_correctness = True
         for answer in answers:
             question_id = answer["question_id"]
-            answer_id = int(answer["answer"])
             type = answer["type"]
             if type == "multiple-choice-one-answer":
+                answer_id = int(answer["answer"])
                 correct = True
                 correct_answers = quiz_models.Question_Correct_Answer.objects.filter(question_id=question_id).values("choice_id")
                 for correct_answer in correct_answers:
-                    print("Choice id")
-                    print(correct_answer["choice_id"])
-                    print("Answer id")
-                    print(answer_id)
                     if correct_answer["choice_id"] != answer_id:
-                        print("They are not the same")
                         correct = False
                         quiz_correctness = False
-            assessment.append({"question_id":question_id,"type": type,"correct":correct})
-
-            #answer_log = quiz_models.AnswerLog(quiz=quiz, question=question_id)
-            #answer_log.save()
+                answer_log = quiz_models.AnswerLog(user=User.objects.get(id=user_id), group=reader_models.Group.objects.get(id=group_id), session=session_id, datetime=datetime, quiz=quiz_models.Quiz.objects.get(id=quiz_id), question=quiz_models.Question(id=question_id),
+                                                   answer=answer_id, correct=correct, submitted=True)
+                answer_log.save()
+            assessment.append({"question_id":question_id, "type": type, "correct":correct})
 
         return JSONResponse({"quiz_correctness":quiz_correctness, "assessment": assessment}, status=201)
 
     else:
         return HttpResponseForbidden()
+
+def attempt(request):
+    """
+    Log when a student mark a choice in a quiz
+    """
+    if request.method == 'POST':
+        data = JSONParser().parse(request)
+        print(data)
+        user_id = data["user"]
+        group_id = data["group"]
+        session_id = data["session"]
+        datetime = data["datetime"]
+        quiz_id = data["quiz"]
+        question_id = data["question"]
+        type = data["type"]
+        if type == "multiple-choice-one-answer":
+            answer_id = int(data["answer"])
+            correct = True
+            correct_answers = quiz_models.Question_Correct_Answer.objects.filter(question_id=question_id).values("choice_id")
+            for correct_answer in correct_answers:
+                if correct_answer["choice_id"] != answer_id:
+                    correct = False
+            answer_log = quiz_models.AnswerLog(user=User.objects.get(id=user_id), group=reader_models.Group.objects.get(id=group_id), session=session_id, datetime=datetime, quiz=quiz_models.Quiz.objects.get(id=quiz_id), question=quiz_models.Question(id=question_id),
+                                               answer=answer_id, correct=correct,submitted=False)
+            answer_log.save()
+        return JSONResponse({"tracked":True}, status=201)
+    else:
+        return HttpResponseForbidden()
+
 
 @csrf_exempt
 def kcs(request):

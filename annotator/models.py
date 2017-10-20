@@ -22,9 +22,9 @@ class Annotation(models.Model):
     :param user: user id of annotation owner
     :param consumer: consumer key of backend
     """
-    id = models.AutoField(primary_key=True)
+    #id = models.AutoField(primary_key=True)
+    id = models.CharField(max_length=10, primary_key=True, default="0000000000")
     annotator_schema_version = models.CharField(max_length=8, default="v1.0")
-    uuid = models.CharField(max_length=15, unique=True, default="0-00000")
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
     text = models.TextField()
@@ -32,7 +32,6 @@ class Annotation(models.Model):
     uri = models.CharField(max_length=4096, blank=True)
     group = models.ForeignKey(reader_models.Group, default="default")
     user = models.ForeignKey(User)
-    datetime = models.DateTimeField(default=timezone.now())
     consumer = models.CharField(max_length=64, blank=True)
     permissions = JSONField()
 

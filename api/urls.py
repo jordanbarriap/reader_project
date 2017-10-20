@@ -10,5 +10,6 @@ urlpatterns = [
     url(r"^reader/?$", views.reading_log, name="reading_log"),
     url(r"^quiz/?$", views.quiz, name="quiz"),
     url(r"^quiz/assess?$", views.assess, name="assess"),
+    url(r"^quiz/attempt?$", views.attempt, name="attempt"),
     url(r"^kcs/?$", views.kcs, name="kcs")
 ]
