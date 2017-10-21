@@ -15,7 +15,7 @@
 
     <!--<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>-->
 
-    <!--<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
+    <!--<script src="http://ajax.googxleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>-->
     <script src="{% static "reader/js/jquery-1.9.1.js" %}"></script>
     <script src="{% static "annotator/js/annotator-full.min.js" %}"></script>
 
@@ -118,7 +118,9 @@
         .range(["#F99B39","#FAD594"]);
 
     var color = d3.scale.linear()
+        //.domain([0.0, 0.5, 1.0])
         .domain([0.0, 1.0])
+        //.range(["red","yellow","green"]);
         .range(["#E0E0E0", "#2562c3"]);
 
 
@@ -312,7 +314,6 @@ function loadHtml() {
         last_page_read["page"] = last_page_read_number;
     }
     initProgressVis(course_hierarchical_structure);
-    initToc(course_hierarchical_structure);
     //Once the TOC is completely loaded, the view need to be focused on the current section
     $.when(initToc(course_hierarchical_structure)).then(function () {
         focusCurrentTocSection();
@@ -325,12 +326,15 @@ function loadHtml() {
 
 function initProgressVis(root){
 
-    var margin = {top: 45, right: 0, bottom: 0, left: 20};
+    var margin = {top: 60, right: 5, bottom: 2, left: 5};
 
-    var w = $("#vis-div").width();
-    var h = $("#vis-div").height()-margin.top;
+    var w = $("#vis-div").width()- margin.left - margin.right;
+    var h = $("#vis-div").height()- margin.top - margin.bottom;
 
-    var svg_size = w;//Change for making svg and svg-comp diferent
+    var quiz_bar_length = (w/2)*0.3;
+    var quiz_bar_width = 3;
+
+    var svg_size = w/2;//Change for making svg and svg-comp diferent
 
     var partition = d3.layout.partition()
         .sort(null)
@@ -341,34 +345,49 @@ function initProgressVis(root){
 
 
     var x = d3.scale.linear()
-        .range([0, w]);
+        .range([0,w/2-quiz_bar_length]);
         //.range([0, h]);
     var y = d3.scale.linear()
             .range([0, h]);
             //range([0, w]);
 
     var x_comp = d3.scale.linear()
-        .range([w, 0]);
+        .range([w/2-quiz_bar_length, 0]);
 
-    var separation = 1.5;
+    var separation = 1;
     var y_separation = 1;
 
     updateProgressVis(course_hierarchical_structure);
     function updateProgressVis(root) {
 
-    /*var svg_comp = d3.select("#vis-div").append("svg")
+    var svg_comp = d3.select("#vis-div").append("svg")
         .attr("id","svg-vis-comp")
         .attr("width", svg_size )
         .attr("height", h)
             .append("g")
-            .attr("id","g_progress_vis_comp");
+            .attr("id","g_progress_vis_comp")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");//TODO: parametrize horizontal translation
+
+    svg_comp.selectAll("text")
+            .data(course_level_labels)
+            .enter()
+            .append("text")
+            .text(function(d){return d;})
+            .attr("transform",function(d,i){return "translate("+(x_comp((i)/(course_level_labels.length+1))+7)+","+y(0)+") rotate(-75)";})
+            .style("font-size","8px");
+
+    svg_comp.append("text")
+        .attr("class","vis-title")
+        .text("Group")
+        .attr("transform",function(d){return "translate("+(w/2-this.getComputedTextLength())/2+",-"+(margin.top-15)+")";});
 
     var rect_comp = svg_comp.selectAll("rect");
 
     rect_comp = rect_comp
           .data(partition(root))
         .enter().append("g")
-            .attr("class", function (d) {
+            .attr("class", "vis-comp-section")
+            /*.attr("class", function (d) {
                     classname = "partition_depth_" + d.depth;
 
                     //if (d.depth > 0){
@@ -376,10 +395,11 @@ function initProgressVis(root){
                     //}
 
                     return classname;
-                })
+                })*/
+            .attr("id",function(d){return "vis-comp-section-"+d.id})
             .append("rect")
           .attr("x", function(d) {
-                return x_comp(d.y)-d.depth*separation;
+                return x_comp(d.y) + (d.depth-1)*separation + x(d.dy);
                 //return d.depth*(separation+widthLayer);
             })
           .attr("y", function(d) { return y(d.x)+y_separation; })
@@ -400,7 +420,7 @@ function initProgressVis(root){
 
                     return classname;
                 })
-          .attr("display", function(d) { return d.depth && d.depth<=4 ? null : "none"; })//d.depth && d.depth<=3 ? null : "none"; })
+          .attr("display", function(d) { return d.depth && d.depth<=4 ? null : "none"; })
           .attr("stroke-width","1px")
           .attr("stroke","white")
           .attr("opacity",1)
@@ -409,6 +429,59 @@ function initProgressVis(root){
           /*.on("click", visSectionClick)
           .on("dblclick", partitionTableDoubleClick)
           .on("mouseout",partitionTableMouseout);*/
+
+        var x_quiz = d3.scale.linear()
+            .range([0, quiz_bar_length]);
+            //.range([0, h]);
+
+        var quiz_sections_comp = d3.selectAll("g.vis-comp-section").filter(function(d){return !d.children && d.quiz;});
+        quiz_sections_comp.append("rect")
+            .attr("class","corrects-bar")
+            .attr("x", function (d) {
+                var corrects = d.quiz.corrects_group;
+                var incorrects = d.quiz.incorrects_group;
+                var attempts = corrects + incorrects;
+                return x_comp(1) + 2*x(d.dy) - x_quiz(incorrects/attempts);
+            })
+            .attr("y", function (d) {
+                return y(d.x) + y_separation - quiz_bar_width/2 + y(d.dx)/2;
+            })
+            .attr("width", function (d) {
+                var corrects = d.quiz.corrects_group;
+                var incorrects = d.quiz.incorrects_group;
+                var attempts = corrects + incorrects;
+                return x_quiz(incorrects/attempts);
+            })
+            .attr("height", function (d) {
+                return quiz_bar_width;
+            })
+            .attr("fill", function (d) {
+                return "red";
+            });
+
+        quiz_sections_comp.append("rect")
+            .attr("class","corrects-bar")
+            .attr("x", function (d) {
+                var corrects = d.quiz.corrects_group;
+                var incorrects = d.quiz.incorrects_group;
+                var attempts = corrects + incorrects;
+                return x_comp(1) + 2*x(d.dy) - quiz_bar_length;
+            })
+            .attr("y", function (d) {
+                return y(d.x) + y_separation - quiz_bar_width/2 + y(d.dx)/2;
+            })
+            .attr("width", function (d) {
+                var corrects = d.quiz.corrects_group;
+                var incorrects = d.quiz.incorrects_group;
+                var attempts = corrects + incorrects;
+                return x_quiz(corrects/attempts);
+            })
+            .attr("height", function (d) {
+                return quiz_bar_width;
+            })
+            .attr("fill", function (d) {
+                return "green";
+            });
 
         tip_ind = d3.tip()
           .attr('class', 'd3-tip')
@@ -427,15 +500,20 @@ function initProgressVis(root){
             .attr("height", h)
             .append("g")
             .attr("id", "g_progress_vis")
-            .attr("transform", "translate(-"+margin.left+","+margin.top+")");//TODO: parametrize horizontal translation
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");//TODO: parametrize horizontal translation
 
         svg_ind.selectAll("text")
             .data(course_level_labels)
             .enter()
             .append("text")
             .text(function(d){return d;})
-            .attr("transform",function(d,i){return "translate("+(x((i+1)/(course_level_labels.length+1))+10)+","+y(0)+") rotate(-55)";})
-            .style("font-size","10px");
+            .attr("transform",function(d,i){return "translate("+(x((i)/(course_level_labels.length+1))+5)+","+y(0)+") rotate(-75)";})
+            .style("font-size","8px");
+
+        svg_ind.append("text")
+        .attr("class","vis-title")
+        .text("Me")
+        .attr("transform",function(d){return "translate("+(w/2-this.getComputedTextLength())/2+",-"+(margin.top-15)+")";});
 
 
         var rect = svg_ind.selectAll("rect");
@@ -445,7 +523,7 @@ function initProgressVis(root){
                 return d.id;
             })
             .enter().append("g")
-            .attr("class", "vis-section" )/*function (d) {
+            .attr("class", "vis-section")/*function (d) {
                 classname = "partition_depth_" + d.depth;
                 return classname;
             })*/
@@ -455,7 +533,7 @@ function initProgressVis(root){
             .on("mouseout", visSectionMouseout)
             .append("rect")
             .attr("x", function (d) {
-                return x(d.y) + d.depth * separation;
+                return x(d.y) + (d.depth-1)*separation - x(d.dy);
             })
             .attr("y", function (d) {
                 return y(d.x) + y_separation;
@@ -474,20 +552,65 @@ function initProgressVis(root){
             })
             .attr("class", function (d) {
                 classname = "partition_depth_" + d.depth;
-
                 return classname;
             })
             .attr("id", function(d){return "vis-"+d.id;})
             .attr("display", function (d) {
                 return d.depth && d.depth <= 4 ? null : "none";
-            })//d.depth && d.depth<=3 ? null : "none"; })
+            })
             .attr("stroke-width", "0.5px")
             .attr("stroke", "white")
             .attr("opacity", 1);
-
         /*.on("dblclick", partitionTableDoubleClick)
           .on("mouseover",partitionTableMouseover)
           .on("mouseout",partitionTableMouseout);*/
+
+
+
+        var quiz_sections = d3.selectAll("g.vis-section").filter(function(d){return !d.children && d.quiz;});
+        quiz_sections.append("rect")
+            .attr("class","incorrects-bar")
+            .attr("x", function (d) {
+                return x(1) - x(d.dy) + 5;
+            })
+            .attr("y", function (d) {
+                return y(d.x) + y_separation - quiz_bar_width/2 + y(d.dx)/2;
+            })
+            .attr("width", function (d) {
+                var corrects = d.quiz.corrects;
+                var incorrects = d.quiz.incorrects;
+                var attempts = corrects + incorrects;
+                return x_quiz(incorrects/attempts);
+            })
+            .attr("height", function (d) {
+                return quiz_bar_width;
+            })
+            .attr("fill", function (d) {
+                return "red";
+            });
+        quiz_sections.append("rect")
+            .attr("class","corrects-bar")
+            .attr("x", function (d) {
+                var corrects = d.quiz.corrects;
+                var incorrects = d.quiz.incorrects;
+                var attempts = corrects + incorrects;
+                return x(1) - x(d.dy) + 5 + x_quiz(incorrects/attempts);
+            })
+            .attr("y", function (d) {
+                return y(d.x) + y_separation - quiz_bar_width/2 + y(d.dx)/2;
+            })
+            .attr("width", function (d) {
+                var corrects = d.quiz.corrects;
+                var incorrects = d.quiz.incorrects;
+                var attempts = corrects + incorrects;
+                return x_quiz(corrects/attempts);
+            })
+            .attr("height", function (d) {
+                return quiz_bar_width;
+            })
+            .attr("fill", function (d) {
+                return "green";
+            });
 
         svg_ind.call(tip_ind);
 
@@ -775,7 +898,7 @@ function loadResource(section_id,section_name,resource_id,page_num,source){
 
          $("#page-container").bind('scrollStart', function(){
             scrolling = true;
-            console.log('scrollStart');
+
             //Log scroll event by using the reader api
 
             //Get all the text html containers
@@ -789,7 +912,7 @@ function loadResource(section_id,section_name,resource_id,page_num,source){
             });
 
 		    var reader_height = document.getElementById("page-container").scrollHeight;
-            console.log(reader_height);
+
             var top = $("#page-container").scrollTop() - $("#page-container").offset().top;
 		    var bottom = top + window.innerHeight;
 
@@ -800,7 +923,6 @@ function loadResource(section_id,section_name,resource_id,page_num,source){
 		    top = (100 * top / reader_height).toFixed(2);
 		    bottom = (100 * bottom / reader_height).toFixed(2);
 
-		    console.log("top: "+top+"bottom: "+bottom);
             var viewport_positions={"top":top,"bottom":bottom};
             //$.post( "http://{{ request.META.HTTP_HOST }}/reader_project/api/reader", JSON.stringify(
             $.post( "http://{{ request.META.HTTP_HOST }}/api/reader", JSON.stringify(
@@ -1033,7 +1155,7 @@ function visSectionClick(d){
 function initToc(course_structure){
     var vis_element = d3.select('#g_progress_vis').node();
     //var margin_left = vis_element.getBoundingClientRect().width;
-    var margin = {top: 10, right: 0, bottom: 5, left: 20};
+    var margin = {top: 10, right: 0, bottom: 5, left: 2};
 
     var i = 0;
 
@@ -1042,12 +1164,12 @@ function initToc(course_structure){
 
     var diagonal = d3.svg.diagonal()
         .projection(function(d) { return [d.y, d.x]; });
-    var width = $("#toc-div").width() - margin.left;
+    var width = $("#toc-div").width() - margin.left - margin.right;
     var svg = d3.select("#toc-div").append("svg")
         .attr("id","svg-toc")
         .attr("width", width)// + margin.left + margin.right)
         .append("g")
-            .attr("id","g_index")
+            .attr("id","g-toc")
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
     course_structure.x0 = 0;
@@ -1058,11 +1180,11 @@ function initToc(course_structure){
 
       // Compute the flattened node list. TODO use d3.layout.hierarchy.
       var nodes = tree.nodes(root);
-      var margin = {top: 10, right: 0, bottom: 5, left: 10};
+      var margin = {top: 10, right: 0, bottom: 5, left: 5};
 
       var duration = 400;
       //var width = 400 - margin.left - margin.right,
-      var  barHeight = 20,
+      var  barHeight = 16,
         barWidth = width * .8;
 
       var height = Math.max(window.innerHeight, nodes.length * barHeight + margin.top + margin.bottom);
@@ -1559,9 +1681,24 @@ function initToc(course_structure){
                     .style("opacity",1)
                     //.style("stroke","#0052ff")
                     .style("stroke","#fe9103")
-                    .style("stroke-width","1.5px")
+                    //.style("stroke","#272727")
+                    .style("stroke-width","1.2px")
                     .style("filter", "url(#drop-shadow)");
              d3.select("g#vis-section-"+section).moveToFront();
+
+             d3.select("g#vis-comp-section-"+section)
+                .attr("class","vis-comp-section active")
+                .select("rect")
+                    .transition()
+                    .duration(100)
+                    //.attr("transform","translate(5,0)")
+                    .style("opacity",1)
+                    //.style("stroke","#0052ff")
+                    .style("stroke","#fe9103")
+                    //.style("stroke","#272727")
+                    .style("stroke-width","1.2px")
+                    .style("filter", "url(#drop-shadow)");
+             d3.select("g#vis-comp-section-"+section).moveToFront();
         }
     }
 
@@ -1588,6 +1725,31 @@ function initToc(course_structure){
         d3.selectAll("g.vis-section")
             .filter(function(d){
                 return selected_sections_ids.indexOf(d.id)!=-1;
+            }).moveToFront();
+
+        var selected_comp_sections = getAncestors(d3.select("#vis-comp-section-"+last_page_read["id"]).node().__data__);
+        var selected_comp_sections_ids =  selected_comp_sections.map(function(d){return d.id;});
+        var comp_selector = "g.vis-comp-section.active";
+        for(var i=0;i<selected_comp_sections_ids.length;i++){
+            comp_selector = comp_selector + ":not(#vis-comp-section-"+selected_comp_sections_ids[i]+")";
+        }
+
+        var unhighlighted_comp_sections = d3.selectAll(comp_selector)
+            /*.filter(function(d){
+                return selected_sections_ids.indexOf(d.id)==-1;
+            })*/
+            .attr("class","vis-comp-section")
+            .select("rect")
+                .transition()
+                .duration(100)
+                .attr("transform","translate(0,0)")
+                .style("stroke","white")
+                .style("stroke-width","0.5px")
+                .style("filter", "none");
+
+        d3.selectAll("g.vis-comp-section")
+            .filter(function(d){
+                return selected_comp_sections_ids.indexOf(d.id)!=-1;
             }).moveToFront();
 
 

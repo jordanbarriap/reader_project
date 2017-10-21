@@ -3,16 +3,9 @@
   <component name="ChangeListManager">
     <list default="true" id="068e50df-7c48-4f99-97d8-74285d511dc9" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/annotator/models.py" afterPath="$PROJECT_DIR$/annotator/models.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/annotator/static/annotator/view_annotator/js/richEditor.js" afterPath="$PROJECT_DIR$/annotator/static/annotator/view_annotator/js/richEditor.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/annotator/static/annotator/view_annotator/js/view_annotator.js" afterPath="$PROJECT_DIR$/annotator/static/annotator/view_annotator/js/view_annotator.js" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/api/urls.py" afterPath="$PROJECT_DIR$/api/urls.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/api/views.py" afterPath="$PROJECT_DIR$/api/views.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/quiz/models.py" afterPath="$PROJECT_DIR$/quiz/models.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/reader/static/reader/css/modal.css" afterPath="$PROJECT_DIR$/reader/static/reader/css/modal.css" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/reader/static/reader/css/reader.css" afterPath="$PROJECT_DIR$/reader/static/reader/css/reader.css" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/reader/templates/reader.html" afterPath="$PROJECT_DIR$/reader/templates/reader.html" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/reader/templates/registration/login.html" afterPath="$PROJECT_DIR$/reader/templates/registration/login.html" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/reader/views.py" afterPath="$PROJECT_DIR$/reader/views.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -26,13 +19,13 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="reader.html" pinned="false" current-in-tab="false">
+      <file leaf-file-name="reader.html" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/reader/templates/reader.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="208">
-              <caret line="1101" column="65" lean-forward="false" selection-start-line="1101" selection-start-column="65" selection-end-line="1101" selection-end-column="65" />
+            <state relative-caret-position="193">
+              <caret line="375" column="133" lean-forward="false" selection-start-line="375" selection-start-column="133" selection-end-line="375" selection-end-column="133" />
               <folding>
-                <marker date="1508487074000" expanded="true" signature="15822:15866" ph="..." />
+                <marker date="1508552262000" expanded="true" signature="18929:18973" ph="..." />
               </folding>
             </state>
           </provider>
@@ -81,11 +74,9 @@
       <file leaf-file-name="views.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/api/views.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="301">
-              <caret line="282" column="35" lean-forward="false" selection-start-line="282" selection-start-column="35" selection-end-line="282" selection-end-column="35" />
-              <folding>
-                <element signature="e#0#32#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="255">
+              <caret line="17" column="0" lean-forward="false" selection-start-line="17" selection-start-column="0" selection-end-line="17" selection-end-column="38" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -93,18 +84,20 @@
       <file leaf-file-name="views.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/reader/views.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="290">
-              <caret line="62" column="66" lean-forward="true" selection-start-line="62" selection-start-column="66" selection-end-line="62" selection-end-column="66" />
-              <folding />
+            <state relative-caret-position="198">
+              <caret line="27" column="33" lean-forward="false" selection-start-line="27" selection-start-column="32" selection-end-line="27" selection-end-column="33" />
+              <folding>
+                <element signature="e#0#35#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="reader.css" pinned="false" current-in-tab="true">
+      <file leaf-file-name="reader.css" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/reader/static/reader/css/reader.css">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="453">
-              <caret line="121" column="18" lean-forward="true" selection-start-line="121" selection-start-column="18" selection-end-line="121" selection-end-column="18" />
+            <state relative-caret-position="490">
+              <caret line="325" column="28" lean-forward="false" selection-start-line="325" selection-start-column="28" selection-end-line="325" selection-end-column="28" />
               <folding />
             </state>
           </provider>
@@ -123,8 +116,8 @@
       <file leaf-file-name="models.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/quiz/models.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="320">
-              <caret line="63" column="24" lean-forward="true" selection-start-line="63" selection-start-column="24" selection-end-line="63" selection-end-column="24" />
+            <state relative-caret-position="352">
+              <caret line="84" column="30" lean-forward="true" selection-start-line="84" selection-start-column="30" selection-end-line="84" selection-end-column="30" />
               <folding>
                 <element signature="e#0#28#0" expanded="true" />
               </folding>
@@ -146,36 +139,36 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>createreference</find>
-      <find>annotationcreated</find>
-      <find>shown</find>
-      <find>annotator</find>
-      <find>delete</find>
-      <find>annotatorviewer</find>
-      <find>be</find>
-      <find>var uid = new ShortUniqueId();//Generates uuid for each annotation @jordanbe</find>
-      <find>before</find>
-      <find>when</find>
-      <find>value</find>
-      <find>ASSESS</find>
-      <find>assess</find>
-      <find>we could not</find>
-      <find>user=</find>
-      <find>get(</find>
-      <find>img</find>
-      <find>btn</find>
-      <find>visible_text_elements</find>
-      <find>loadresource</find>
-      <find>page-visible</find>
-      <find>answers</find>
-      <find>submit</find>
-      <find>size</find>
-      <find>quiz-submit</find>
-      <find>api/quiz</find>
-      <find>quiz_id</find>
+      <find>vis-comp-section</find>
+      <find>highlightvissections</find>
+      <find>highlightvissection</find>
+      <find>unhighlightvissections</find>
+      <find>mouseover</find>
+      <find>vissectionmouseover</find>
+      <find>movetoback</find>
+      <find>movetofront</find>
+      <find>sort</find>
+      <find>opacity</find>
+      <find>inittoc</find>
+      <find>course_level</find>
+      <find>bar</find>
+      <find>quiz_bar_width</find>
+      <find>x_comp</find>
+      <find>initprogressvis</find>
+      <find>corrects</find>
+      <find>toc</find>
       <find>correct =</find>
-      <find>font-size</find>
-      <find>trian</find>
+      <find>&quot;Group</find>
+      <find>&quot;Group&quot;</find>
+      <find>text(</find>
+      <find>comp</find>
+      <find>roboto</find>
+      <find>sans</find>
+      <find>size</find>
+      <find>svg_comp</find>
+      <find>stroke</find>
+      <find>%</find>
+      <find>rotate</find>
     </findStrings>
     <replaceStrings>
       <replace>toc-section</replace>
@@ -183,6 +176,7 @@
       <replace>updateReadPage</replace>
       <replace>.id</replace>
       <replace>.uuid</replace>
+      <replace>g-toc</replace>
     </replaceStrings>
   </component>
   <component name="Git.Settings">
@@ -212,7 +206,6 @@
         <option value="$PROJECT_DIR$/reader/static/css/modal.css" />
         <option value="$PROJECT_DIR$/reader/static/reader/css/login.css" />
         <option value="$PROJECT_DIR$/reader_project/urls.py" />
-        <option value="$PROJECT_DIR$/reader/views.py" />
         <option value="$PROJECT_DIR$/api/serializers.py" />
         <option value="$PROJECT_DIR$/reader_project/settings.py" />
         <option value="$PROJECT_DIR$/quiz/admin.py" />
@@ -239,8 +232,9 @@
         <option value="$PROJECT_DIR$/quiz/models.py" />
         <option value="$PROJECT_DIR$/api/urls.py" />
         <option value="$PROJECT_DIR$/api/views.py" />
-        <option value="$PROJECT_DIR$/reader/templates/reader.html" />
+        <option value="$PROJECT_DIR$/reader/views.py" />
         <option value="$PROJECT_DIR$/reader/static/reader/css/reader.css" />
+        <option value="$PROJECT_DIR$/reader/templates/reader.html" />
       </list>
     </option>
   </component>
@@ -251,8 +245,7 @@
     <sorting>DEFINITION_ORDER</sorting>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="-1966" />
-    <option name="y" value="464" />
+    <option name="y" value="23" />
     <option name="width" value="1280" />
     <option name="height" value="741" />
   </component>
@@ -512,18 +505,19 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="-1966" y="464" width="1280" height="741" extended-state="0" />
+    <frame x="0" y="23" width="1280" height="741" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.19921875" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.19921875" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3298351" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -532,7 +526,6 @@
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3298351" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
     </layout>
   </component>
@@ -805,36 +798,36 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/annotator/static/annotator/view_annotator/js/richEditor.js">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="600">
-          <caret line="55" column="51" lean-forward="false" selection-start-line="55" selection-start-column="51" selection-end-line="55" selection-end-column="51" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/quiz/models.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="320">
-          <caret line="63" column="24" lean-forward="true" selection-start-line="63" selection-start-column="24" selection-end-line="63" selection-end-column="24" />
-          <folding>
-            <element signature="e#0#28#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/reader/static/reader/css/login.css">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="280">
-          <caret line="33" column="11" lean-forward="false" selection-start-line="33" selection-start-column="7" selection-end-line="33" selection-end-column="11" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/reader/templates/registration/login.html">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="203">
           <caret line="20" column="9" lean-forward="false" selection-start-line="20" selection-start-column="9" selection-end-line="20" selection-end-column="9" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/reader/views.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="198">
+          <caret line="27" column="33" lean-forward="false" selection-start-line="27" selection-start-column="32" selection-end-line="27" selection-end-column="33" />
+          <folding>
+            <element signature="e#0#35#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/api/views.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="255">
+          <caret line="17" column="0" lean-forward="false" selection-start-line="17" selection-start-column="0" selection-end-line="17" selection-end-column="38" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/annotator/static/annotator/view_annotator/js/richEditor.js">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="600">
+          <caret line="55" column="51" lean-forward="false" selection-start-line="55" selection-start-column="51" selection-end-line="55" selection-end-column="51" />
           <folding />
         </state>
       </provider>
@@ -847,34 +840,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/api/views.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="301">
-          <caret line="282" column="35" lean-forward="false" selection-start-line="282" selection-start-column="35" selection-end-line="282" selection-end-column="35" />
-          <folding>
-            <element signature="e#0#32#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/reader/views.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="290">
-          <caret line="62" column="66" lean-forward="true" selection-start-line="62" selection-start-column="66" selection-end-line="62" selection-end-column="66" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/reader/templates/reader.html">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="208">
-          <caret line="1101" column="65" lean-forward="false" selection-start-line="1101" selection-start-column="65" selection-end-line="1101" selection-end-column="65" />
-          <folding>
-            <marker date="1508487074000" expanded="true" signature="15822:15866" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/annotator/models.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="15">
@@ -883,11 +848,39 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/reader/static/reader/css/login.css">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="280">
+          <caret line="33" column="11" lean-forward="false" selection-start-line="33" selection-start-column="7" selection-end-line="33" selection-end-column="11" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/quiz/models.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="352">
+          <caret line="84" column="30" lean-forward="true" selection-start-line="84" selection-start-column="30" selection-end-line="84" selection-end-column="30" />
+          <folding>
+            <element signature="e#0#28#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/reader/static/reader/css/reader.css">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="453">
-          <caret line="121" column="18" lean-forward="true" selection-start-line="121" selection-start-column="18" selection-end-line="121" selection-end-column="18" />
+        <state relative-caret-position="490">
+          <caret line="325" column="28" lean-forward="false" selection-start-line="325" selection-start-column="28" selection-end-line="325" selection-end-column="28" />
           <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/reader/templates/reader.html">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="193">
+          <caret line="375" column="133" lean-forward="false" selection-start-line="375" selection-start-column="133" selection-end-line="375" selection-end-column="133" />
+          <folding>
+            <marker date="1508552262000" expanded="true" signature="18929:18973" ph="..." />
+          </folding>
         </state>
       </provider>
     </entry>

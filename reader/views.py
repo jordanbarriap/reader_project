@@ -6,6 +6,9 @@ from django.core import serializers
 from django.core.serializers.json import DjangoJSONEncoder
 
 from reader.models import *
+from quiz import models as quiz_models
+
+import random
 
 from django.db import connection
 from django.db.models import Count
@@ -51,6 +54,7 @@ def calculate_reading_progress(node):
         set_number_of_pages(node,num_pages)
         set_number_of_read_pages(node, read_pages)
         set_number_of_group_read_pages(node, group_read_pages)
+        set_quiz(node)
         return num_pages, read_pages, group_read_pages
     else:
         if has_pages(node):
@@ -61,12 +65,14 @@ def calculate_reading_progress(node):
             set_number_of_pages(node,num_pages)
             set_number_of_read_pages(node,read_pages)
             set_number_of_group_read_pages(node, group_read_pages)
+            set_quiz(node)
             return num_pages, read_pages, group_read_pages
         else:
             num_pages, read_pages, group_read_pages = calculate_subsections_reading_progress(node["children"])
             set_number_of_pages(node,num_pages)
             set_number_of_read_pages(node, read_pages)
             set_number_of_group_read_pages(node, group_read_pages)
+            set_quiz(node)
             return num_pages, read_pages, group_read_pages
 
 
@@ -126,3 +132,16 @@ def set_number_of_read_pages(node, read_pages):
 
 def set_number_of_group_read_pages(node, num_group_read_pages):
     node["group_read_pages"] = num_group_read_pages
+
+def set_quiz(node):
+    section_id = node["id"]
+    try:
+        quiz = quiz_models.Quiz.objects.get(course_section=section_id)
+        corrects = random.randint(0, 10)
+        incorrects = random.randint(0,10)
+        corrects_group = random.randint(0,10)
+        incorrects_group = random.randint(0, 10)
+        node["quiz"] = {"name": quiz.name, "corrects":corrects, "incorrects": incorrects, "corrects_group":corrects_group, "incorrects_group":incorrects_group}
+    except quiz_models.Quiz.DoesNotExist:
+        quiz = None
+
