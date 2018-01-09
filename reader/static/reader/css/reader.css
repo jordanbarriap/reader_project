@@ -56,14 +56,14 @@ body{
 
 #vis-div{
     float:left;
-    width:35%;
+    width:25%;
     height: 100%;
     position: relative;
 }
 
 #toc-div{
     float:right;
-    width:65%;
+    width:75%;
     height: 100%;
     overflow-y: auto;
     position: relative;
@@ -319,9 +319,9 @@ path.link {
 }
 
 .vis-title{
-    font-family: 'Droid', sans-serif;
+    font-family: 'Roboto', sans-serif;
     font-size: 13px;
+    font-weight: bold;
     margin: auto;
-    fill: rgba(65, 65, 65, 0.88);
-    text-shadow: 0.5px 0.5px #333333;
+    fill: rgba(58, 58, 58, 0.88);
 }

@@ -266,7 +266,6 @@ def attempt(request):
     """
     if request.method == 'POST':
         data = JSONParser().parse(request)
-        print(data)
         user_id = data["user"]
         group_id = data["group"]
         session_id = data["session"]

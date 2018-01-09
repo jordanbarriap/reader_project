@@ -40,7 +40,7 @@ def load_course(request,url_group_id):
         num_students = int(Group.objects.annotate(num_students=Count('students'))[0].num_students)
         hierarchical_structure = course_json.course_structure
         calculate_reading_progress(hierarchical_structure)
-        final_json = {"group":group_id, "course":{"id":course_json.id, "name":course_json.name}, "course_hierarchical":hierarchical_structure,"last_page_read":last_page_read}
+        final_json = {"group":group_id, "course":{"id":course_json.id, "name":course_json.name}, "course_hierarchical": hierarchical_structure,"last_page_read":last_page_read}
         final_json_wo_unicode = json.dumps(final_json)
         final_json_dict = ast.literal_eval(final_json_wo_unicode)
         return render(request, "reader.html", final_json_dict)
@@ -133,12 +133,17 @@ def set_number_of_read_pages(node, read_pages):
 def set_number_of_group_read_pages(node, num_group_read_pages):
     node["group_read_pages"] = num_group_read_pages
 
+
 def set_quiz(node):
+    global user_id, group_id
     section_id = node["id"]
     try:
         quiz = quiz_models.Quiz.objects.get(course_section=section_id)
-        corrects = random.randint(0, 10)
-        incorrects = random.randint(0,10)
+        corrects = quiz_models.AnswerLog.objects.filter(user=user_id, group=group_id, quiz= quiz.id, submitted=True, correct=True).count()
+        incorrects = quiz_models.AnswerLog.objects.filter(user=user_id, group=group_id, quiz=quiz.id, submitted=True,
+                                                        correct=False).count()
+        #corrects = random.randint(0, 10)
+        #incorrects = random.randint(0,10)
         corrects_group = random.randint(0,10)
         incorrects_group = random.randint(0, 10)
         node["quiz"] = {"name": quiz.name, "corrects":corrects, "incorrects": incorrects, "corrects_group":corrects_group, "incorrects_group":incorrects_group}
